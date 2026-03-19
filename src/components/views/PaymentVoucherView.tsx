@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getClaimsHistory, getClaimById, getCompanySettings, getUsersDirectory } from '@/lib/claims-api';
+import { getClaimsHistory, getClaimById, getCompanySettings, getAllUsers } from '@/lib/claims-api';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Receipt, RefreshCw, Eye, Printer, Download } from 'lucide-react';
@@ -27,11 +27,11 @@ export default function PaymentVoucherView() {
       setClaims(all.filter(c => c.status.toLowerCase() === 'approved'));
       const [settings, users] = await Promise.all([
         getCompanySettings(),
-        getUsersDirectory(),
+        getAllUsers(),
       ]);
       setCompanySettings(settings);
       setUserDirectory(
-        Object.fromEntries((users || []).map((entry: any) => [String(entry.email || '').toLowerCase(), entry.name]))
+        Object.fromEntries((users || []).map((entry: any) => [String(entry.email || '').trim().toLowerCase(), entry.name]))
       );
     } catch (e) { console.error(e); }
     setLoading(false);
@@ -41,13 +41,21 @@ export default function PaymentVoucherView() {
 
   const viewVoucher = async (claimId: string) => {
     const data = await getClaimById(claimId);
-    setVoucher(data);
+    if (!data) return;
+    const managerLabel = data.managerEmail ? (userDirectory[String(data.managerEmail).trim().toLowerCase()] || data.managerEmail) : '';
+    const adminLabel = data.adminEmail ? (userDirectory[String(data.adminEmail).trim().toLowerCase()] || data.adminEmail) : '';
+    setVoucher({
+      ...data,
+      managerLabel,
+      adminLabel,
+    });
   };
 
   const getDisplayName = (email?: string | null) => {
     if (!email) return '';
-    const name = userDirectory[String(email).toLowerCase()];
-    return name ? `${name} (${email})` : email;
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const name = userDirectory[normalizedEmail];
+    return name || email;
   };
 
   const getVoucherMarkup = () => {
@@ -147,8 +155,15 @@ export default function PaymentVoucherView() {
               <div className="border-2 border-border rounded-lg p-6">
                 {/* Company Header */}
                 <div className="text-center mb-4">
-                  {companySettings?.logo_url && (
-                    <img src={companySettings.logo_url} alt="Logo" className="voucher-logo h-12 w-12 mx-auto mb-2 object-contain" />
+                  {(companySettings?.logo_url || '/ipi-logo.jpg') && (
+                    <img
+                      src={companySettings?.logo_url || '/ipi-logo.jpg'}
+                      alt="Logo"
+                      width="48"
+                      height="48"
+                      className="mx-auto mb-2 block object-contain"
+                      style={{ width: '48px', height: '48px', maxWidth: '48px', maxHeight: '48px', objectFit: 'contain' }}
+                    />
                   )}
                   <h2 className="text-xl font-bold text-primary">{companySettings?.company_name || 'Company'}</h2>
                   {companySettings?.company_subtitle && (
@@ -173,14 +188,14 @@ export default function PaymentVoucherView() {
                     <div className="grid grid-cols-2 gap-2">
                       {voucher.managerEmail && (
                         <>
-                          <div><strong>Manager:</strong> {getDisplayName(voucher.managerEmail)}</div>
+                          <div><strong>Manager:</strong> {voucher.managerLabel || getDisplayName(voucher.managerEmail)}</div>
                           <div><strong>Manager Status:</strong> {voucher.managerApprovalStatus}</div>
                           {voucher.managerApprovalDate && <div><strong>Manager Approval Date:</strong> {formatDate(voucher.managerApprovalDate)}</div>}
                         </>
                       )}
                       {voucher.adminEmail && (
                         <>
-                          <div><strong>Admin:</strong> {getDisplayName(voucher.adminEmail)}</div>
+                          <div><strong>Admin:</strong> {voucher.adminLabel || getDisplayName(voucher.adminEmail)}</div>
                           {voucher.adminApprovalDate && <div><strong>Final Approval Date:</strong> {formatDate(voucher.adminApprovalDate)}</div>}
                         </>
                       )}
@@ -228,15 +243,15 @@ export default function PaymentVoucherView() {
                   <div className="grid grid-cols-3 gap-8 mt-10 text-center text-sm">
                     <div>
                       <div className="border-t border-foreground pt-2 mt-8">Prepared By</div>
-                      <p className="text-xs text-muted-foreground mt-1">{getDisplayName(voucher.adminEmail) || 'Admin'}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{voucher.adminLabel || getDisplayName(voucher.adminEmail) || 'Admin'}</p>
                     </div>
                     <div>
                       <div className="border-t border-foreground pt-2 mt-8">Checked By</div>
-                      <p className="text-xs text-muted-foreground mt-1">{getDisplayName(voucher.managerEmail) || 'Manager'}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{voucher.managerLabel || getDisplayName(voucher.managerEmail) || 'Manager'}</p>
                     </div>
                     <div>
                       <div className="border-t border-foreground pt-2 mt-8">Approved By</div>
-                      <p className="text-xs text-muted-foreground mt-1">{getDisplayName(voucher.adminEmail) || 'Super Admin'}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{voucher.adminLabel || getDisplayName(voucher.adminEmail) || 'Super Admin'}</p>
                     </div>
                   </div>
                 )}
