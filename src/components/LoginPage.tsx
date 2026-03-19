@@ -5,6 +5,7 @@ import { requestPasswordReset } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { LogIn, Loader2, UserPlus, KeyRound, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import AdminSignupForm from '@/components/AdminSignupForm';
 
@@ -23,10 +24,18 @@ export default function LoginPage() {
   const [forgotError, setForgotError] = useState('');
   const [forgotSuccess, setForgotSuccess] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberCredentials, setRememberCredentials] = useState(false);
 
   useEffect(() => {
     getCompanySettings().then(s => { if (s) setCompanySettings(s); }).catch(() => {});
     checkAdminExists().then(setAdminExists).catch(() => setAdminExists(true));
+    const savedEmail = localStorage.getItem('claimsSavedEmail');
+    const savedPassword = localStorage.getItem('claimsSavedPassword');
+    if (savedEmail) setEmail(savedEmail);
+    if (savedPassword) {
+      setPassword(savedPassword);
+      setRememberCredentials(true);
+    }
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,6 +60,12 @@ export default function LoginPage() {
         } else {
           setError(result.message || 'Login failed. Please try again.');
         }
+      } else if (rememberCredentials) {
+        localStorage.setItem('claimsSavedEmail', email.trim());
+        localStorage.setItem('claimsSavedPassword', password);
+      } else {
+        localStorage.removeItem('claimsSavedEmail');
+        localStorage.removeItem('claimsSavedPassword');
       }
     } catch {
       setError('Network error. Please check your connection and try again.');
@@ -81,7 +96,7 @@ export default function LoginPage() {
     setForgotLoading(false);
   };
 
-  const logoUrl = companySettings?.logo_url;
+  const logoUrl = companySettings?.logo_url || '/ipi-logo.jpg';
   const companyName = companySettings?.company_name || 'Claims Management';
   const subtitle = companySettings?.company_subtitle || 'Sign in to continue';
 
@@ -159,6 +174,16 @@ export default function LoginPage() {
                     )}
                   </button>
                 </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="remember-credentials"
+                  checked={rememberCredentials}
+                  onCheckedChange={(checked) => setRememberCredentials(Boolean(checked))}
+                />
+                <Label htmlFor="remember-credentials" className="text-sm font-normal">
+                  Remember login details
+                </Label>
               </div>
 
               <Button 

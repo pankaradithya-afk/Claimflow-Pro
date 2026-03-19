@@ -46,17 +46,11 @@ export default function AttachmentPreview({ fileIds, compact = false }: Attachme
   };
 
   const downloadFile = async (fileId: string) => {
-    const url = getPublicUrl(fileId);
-    if (!url) {
-      toast.error('Unable to download attachment');
-      return;
-    }
-
     try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('Download failed');
+      const { data, error } = await supabase.storage.from('claim-attachments').download(fileId);
+      if (error || !data) throw error || new Error('Download failed');
 
-      const blob = await response.blob();
+      const blob = data;
       const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = objectUrl;

@@ -98,7 +98,7 @@ export default function PaymentVoucherView() {
                   <td className="p-3 text-right">₹{(c.totalWithoutBill ?? 0).toFixed(2)}</td>
                   <td className="p-3 text-right font-medium">₹{c.amount.toFixed(2)}</td>
                   <td className="p-3 text-center">
-                    <Button variant="ghost" size="sm" onClick={() => viewVoucher(c.claimId)}><Eye className="h-4 w-4 mr-1" /> Voucher</Button>
+                    <Button variant="ghost" size="sm" onClick={() => viewVoucher(c.claimIdInternal)}><Eye className="h-4 w-4 mr-1" /> Voucher</Button>
                   </td>
                 </tr>
               ))}

@@ -59,8 +59,8 @@ async function sendEmailNotification(type: string, recipientEmail: string, data?
           companySubtitle: settings?.company_subtitle || 'Claims Management System',
           supportEmail: settings?.support_email || 'projects@ipi-india.com',
           logoUrl: settings?.logo_url || '/ipi-logo.jpg',
-          appUrl: settings?.website || '',
-          loginUrl: settings?.website || '',
+          appUrl: settings?.website || 'https://claimflow-pro-kappa.vercel.app',
+          loginUrl: settings?.website || 'https://claimflow-pro-kappa.vercel.app',
         },
       },
     });
@@ -473,11 +473,10 @@ export async function approveClaimAsManager(claimId: string, approverEmail: stri
     manager_approval_status: 'Approved',
     manager_approval_date: new Date().toISOString(),
   };
-  if (description) updates.manager_description = description;
   const { error } = await supabase.from('claims').update(updates).eq('claim_id', claimId);
   if (error) throw error;
 
-  await logAudit('claim_manager_approved', approverEmail, 'claim', claimId);
+  await logAudit('claim_manager_approved', approverEmail, 'claim', claimId, description || undefined);
   if (claim) {
     const adminApprovers = await getAdminApproverEmails();
     const appUrl = normalizeAppUrl((await getCompanySettings())?.website);
@@ -527,7 +526,6 @@ export async function approveClaimAsAdmin(claimId: string, approverEmail: string
     admin_email: approverEmail,
     admin_approval_date: new Date().toISOString(),
   };
-  if (description) updates.admin_description = description;
   const { error } = await supabase.from('claims').update(updates).eq('claim_id', claimId);
   if (error) throw error;
 
@@ -544,7 +542,7 @@ export async function approveClaimAsAdmin(claimId: string, approverEmail: string
     description: `Claim ${claimId} approved - settlement`,
   });
 
-  await logAudit('claim_admin_approved', approverEmail, 'claim', claimId, `Amount: ₹${amount}`);
+  await logAudit('claim_admin_approved', approverEmail, 'claim', claimId, description ? `Amount: ₹${amount} | ${description}` : `Amount: ₹${amount}`);
   await createNotification(c.user_email, 'Claim Fully Approved', `Your claim ${claimId} has been approved by admin. ₹${amount.toLocaleString('en-IN')} settled.`, 'success', claimId);
   sendEmailNotification('claim_approved', c.user_email, { 
     claim_no: c.claim_number || claimId, 
@@ -794,8 +792,8 @@ export async function createUser(newUser: { email: string; password: string; nam
     advance: newUser.advance,
     email,
     tempPassword: newUser.password,
-    loginUrl: settings?.website || '',
-    userGuideUrl: settings?.website || '',
+    loginUrl: settings?.website || 'https://claimflow-pro-kappa.vercel.app',
+    userGuideUrl: '',
   });
   return { ok: true, message: `User ${newUser.name} created successfully.` };
 }
