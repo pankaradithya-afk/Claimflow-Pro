@@ -49,6 +49,7 @@ export default function PaymentVoucherView() {
       th { background: #f5f5f5; }
       .text-right { text-align: right; }
       h2 { color: #2563eb; }
+      .voucher-logo { display:block; height:48px; width:48px; object-fit:contain; margin:0 auto 8px; }
       .sig-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 40px; margin-top: 60px; text-align: center; }
       .sig-box { border-top: 1px solid #333; padding-top: 8px; }
       @media print { body { padding: 10px; } }
@@ -62,7 +63,7 @@ export default function PaymentVoucherView() {
     const content = document.getElementById('voucher-content');
     if (!content) return;
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Voucher ${voucher.claimId}</title>
-<style>body{font-family:Arial;padding:20px;font-size:12px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:6px 8px}th{background:#f5f5f5}.text-right{text-align:right}h2{color:#2563eb}</style>
+<style>body{font-family:Arial;padding:20px;font-size:12px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:6px 8px}th{background:#f5f5f5}.text-right{text-align:right}h2{color:#2563eb}.voucher-logo{display:block;height:48px;width:48px;object-fit:contain;margin:0 auto 8px}</style>
 </head><body>${content.innerHTML}</body></html>`;
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
@@ -124,7 +125,7 @@ export default function PaymentVoucherView() {
                 {/* Company Header */}
                 <div className="text-center mb-4">
                   {companySettings?.logo_url && (
-                    <img src={companySettings.logo_url} alt="Logo" className="h-12 mx-auto mb-2" />
+                    <img src={companySettings.logo_url} alt="Logo" className="voucher-logo h-12 w-12 mx-auto mb-2 object-contain" />
                   )}
                   <h2 className="text-xl font-bold text-primary">{companySettings?.company_name || 'Company'}</h2>
                   {companySettings?.company_subtitle && (

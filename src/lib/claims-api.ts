@@ -179,7 +179,9 @@ export async function getDashboardSummary(userEmail: string, userRole: string) {
       if (!include) continue;
 
       total++;
-      totalAmount += c.amount;
+      if (c.status.includes('approved') && !c.status.includes('pending') && !c.status.includes('reject')) {
+        totalAmount += c.amount;
+      }
       if (c.status.includes('pending')) pending++;
       if (c.status === 'pending manager approval') {
         if (role === 'manager') { if (c.managerEmail === myEmail) pendingManager++; }
@@ -195,7 +197,12 @@ export async function getDashboardSummary(userEmail: string, userRole: string) {
     let myClaims = 0, myAmount = 0;
     const myEmail = userEmail.toLowerCase();
     for (const c of processedClaims) {
-      if (c.userEmail === myEmail) { myClaims++; myAmount += c.amount; }
+      if (c.userEmail === myEmail) {
+        myClaims++;
+        if (c.status.includes('approved') && !c.status.includes('pending') && !c.status.includes('reject')) {
+          myAmount += c.amount;
+        }
+      }
     }
     const myBalance = await getCurrentBalance(myEmail);
     return { role: 'User', myClaims, myAmount, myBalance };
