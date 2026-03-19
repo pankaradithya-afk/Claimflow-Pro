@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getClaimsHistory, getClaimById, getCompanySettings } from '@/lib/claims-api';
+import { getClaimsHistory, getClaimById, getCompanySettings, getUsersDirectory } from '@/lib/claims-api';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Receipt, RefreshCw, Eye, Printer, Download } from 'lucide-react';
@@ -17,6 +17,7 @@ export default function PaymentVoucherView() {
   const [loading, setLoading] = useState(true);
   const [voucher, setVoucher] = useState<any>(null);
   const [companySettings, setCompanySettings] = useState<any>(null);
+  const [userDirectory, setUserDirectory] = useState<Record<string, string>>({});
 
   const loadClaims = async () => {
     if (!user) return;
@@ -24,8 +25,14 @@ export default function PaymentVoucherView() {
     try {
       const all = await getClaimsHistory(user.email, user.role);
       setClaims(all.filter(c => c.status.toLowerCase() === 'approved'));
-      const settings = await getCompanySettings();
+      const [settings, users] = await Promise.all([
+        getCompanySettings(),
+        getUsersDirectory(),
+      ]);
       setCompanySettings(settings);
+      setUserDirectory(
+        Object.fromEntries((users || []).map((entry: any) => [String(entry.email || '').toLowerCase(), entry.name]))
+      );
     } catch (e) { console.error(e); }
     setLoading(false);
   };
@@ -37,9 +44,25 @@ export default function PaymentVoucherView() {
     setVoucher(data);
   };
 
-  const printVoucher = () => {
+  const getDisplayName = (email?: string | null) => {
+    if (!email) return '';
+    const name = userDirectory[String(email).toLowerCase()];
+    return name ? `${name} (${email})` : email;
+  };
+
+  const getVoucherMarkup = () => {
     const content = document.getElementById('voucher-content');
-    if (!content) return;
+    if (!content) return '';
+    const clone = content.cloneNode(true) as HTMLElement;
+    clone.querySelectorAll('img').forEach((img) => {
+      img.setAttribute('style', 'display:block;height:48px;width:48px;object-fit:contain;margin:0 auto 8px;');
+    });
+    return clone.innerHTML;
+  };
+
+  const printVoucher = () => {
+    const markup = getVoucherMarkup();
+    if (!markup) return;
     const w = window.open('', '', 'width=900,height=700');
     if (!w) return;
     w.document.write(`<html><head><title>Payment Voucher</title><style>
@@ -53,18 +76,18 @@ export default function PaymentVoucherView() {
       .sig-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 40px; margin-top: 60px; text-align: center; }
       .sig-box { border-top: 1px solid #333; padding-top: 8px; }
       @media print { body { padding: 10px; } }
-    </style></head><body>${content.innerHTML}</body></html>`);
+    </style></head><body>${markup}</body></html>`);
     w.document.close();
     w.print();
   };
 
   const exportVoucherHTML = () => {
     if (!voucher) return;
-    const content = document.getElementById('voucher-content');
-    if (!content) return;
+    const markup = getVoucherMarkup();
+    if (!markup) return;
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Voucher ${voucher.claimId}</title>
 <style>body{font-family:Arial;padding:20px;font-size:12px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:6px 8px}th{background:#f5f5f5}.text-right{text-align:right}h2{color:#2563eb}.voucher-logo{display:block;height:48px;width:48px;object-fit:contain;margin:0 auto 8px}</style>
-</head><body>${content.innerHTML}</body></html>`;
+</head><body>${markup}</body></html>`;
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -150,14 +173,14 @@ export default function PaymentVoucherView() {
                     <div className="grid grid-cols-2 gap-2">
                       {voucher.managerEmail && (
                         <>
-                          <div><strong>Manager:</strong> {voucher.managerEmail}</div>
+                          <div><strong>Manager:</strong> {getDisplayName(voucher.managerEmail)}</div>
                           <div><strong>Manager Status:</strong> {voucher.managerApprovalStatus}</div>
                           {voucher.managerApprovalDate && <div><strong>Manager Approval Date:</strong> {formatDate(voucher.managerApprovalDate)}</div>}
                         </>
                       )}
                       {voucher.adminEmail && (
                         <>
-                          <div><strong>Admin:</strong> {voucher.adminEmail}</div>
+                          <div><strong>Admin:</strong> {getDisplayName(voucher.adminEmail)}</div>
                           {voucher.adminApprovalDate && <div><strong>Final Approval Date:</strong> {formatDate(voucher.adminApprovalDate)}</div>}
                         </>
                       )}
@@ -205,15 +228,15 @@ export default function PaymentVoucherView() {
                   <div className="grid grid-cols-3 gap-8 mt-10 text-center text-sm">
                     <div>
                       <div className="border-t border-foreground pt-2 mt-8">Prepared By</div>
-                      <p className="text-xs text-muted-foreground mt-1">{voucher.adminEmail || 'Admin'}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{getDisplayName(voucher.adminEmail) || 'Admin'}</p>
                     </div>
                     <div>
                       <div className="border-t border-foreground pt-2 mt-8">Checked By</div>
-                      <p className="text-xs text-muted-foreground mt-1">{voucher.managerEmail || 'Manager'}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{getDisplayName(voucher.managerEmail) || 'Manager'}</p>
                     </div>
                     <div>
                       <div className="border-t border-foreground pt-2 mt-8">Approved By</div>
-                      <p className="text-xs text-muted-foreground mt-1">{voucher.adminEmail || 'Super Admin'}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{getDisplayName(voucher.adminEmail) || 'Super Admin'}</p>
                     </div>
                   </div>
                 )}
