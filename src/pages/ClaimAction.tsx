@@ -13,6 +13,7 @@ export default function ClaimAction() {
   const [processing, setProcessing] = useState(false);
   const [message, setMessage] = useState('');
   const [rejectReason, setRejectReason] = useState('');
+  const [autoProcessed, setAutoProcessed] = useState(false);
 
   const claimId = searchParams.get('claimId') || '';
   const role = (searchParams.get('role') || '').toLowerCase();
@@ -40,6 +41,12 @@ export default function ClaimAction() {
 
     void loadClaim();
   }, [claimId]);
+
+  useEffect(() => {
+    if (loading || autoProcessed || message || !mode.isApprove || !claimId || !approverEmail) return;
+    setAutoProcessed(true);
+    void processApprove();
+  }, [loading, autoProcessed, message, mode.isApprove, claimId, approverEmail]);
 
   const processApprove = async () => {
     if (!claimId || !approverEmail) return;
@@ -105,7 +112,7 @@ export default function ClaimAction() {
                   {mode.isApprove && (
                     <Button onClick={() => void processApprove()} disabled={processing || !approverEmail}>
                       {processing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      Approve Claim
+                      {processing ? 'Processing Approval...' : 'Approve Claim'}
                     </Button>
                   )}
                   {mode.isReject && (

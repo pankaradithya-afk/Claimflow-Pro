@@ -23,6 +23,13 @@ interface BrandData {
   currency?: string;
 }
 
+function normalizeCurrencySymbol(currency?: string) {
+  const value = String(currency || '').trim();
+  if (!value) return '&#8377;';
+  if (value === '₹' || value === 'â‚¹' || value === 'Ã¢â€šÂ¹') return '&#8377;';
+  return value;
+}
+
 function brand(data: BrandData) {
   return {
     companyName: data.companyName || DEFAULT_COMPANY_NAME,
@@ -32,12 +39,12 @@ function brand(data: BrandData) {
     appUrl: data.appUrl || '',
     loginUrl: data.loginUrl || '',
     userGuideUrl: data.userGuideUrl || '',
-    currency: data.currency || DEFAULT_CURRENCY,
+    currency: normalizeCurrencySymbol(data.currency || DEFAULT_CURRENCY),
   };
 }
 
 function fmtAmount(value?: number, currency = DEFAULT_CURRENCY) {
-  return `${currency}${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format(Number(value || 0))}`;
+  return `${normalizeCurrencySymbol(currency)}${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format(Number(value || 0))}`;
 }
 
 function fmtDate(value?: string) {
@@ -56,7 +63,8 @@ function renderAttachments(attachments?: Attachment[]) {
       return `<li style="margin: 4px 0;">${attachment}</li>`;
     }
     if (attachment.url) {
-      return `<li style="margin: 4px 0;"><a href="${attachment.url}">${attachment.name || attachment.url}</a></li>`;
+      const label = attachment.name || 'Open attachment';
+      return `<li style="margin: 8px 0;"><a href="${attachment.url}" style="color: #2563eb; text-decoration: underline;">${label}</a><div style="font-size: 12px; color: #6b7280;">Open or download this file</div></li>`;
     }
     return `<li style="margin: 4px 0;">${attachment.name || ''}</li>`;
   }).join('');

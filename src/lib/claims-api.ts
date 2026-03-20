@@ -48,11 +48,14 @@ export async function createFirstAdmin(data: { name: string; email: string; pass
 // ============= EMAIL NOTIFICATIONS =============
 async function sendEmailNotification(type: string, recipientEmail: string, data?: any) {
   try {
+    const normalizedRecipientEmail = String(recipientEmail || '').trim().toLowerCase();
+    if (!normalizedRecipientEmail) return;
     const settings = await getCompanySettings();
+    if (settings?.email_notifications_enabled === false) return;
     const { error } = await supabase.functions.invoke('send-notification', {
       body: {
         type,
-        recipientEmail,
+        recipientEmail: normalizedRecipientEmail,
         data: {
           ...data,
           companyName: settings?.company_name || 'Irrigation Products International Pvt Ltd',
@@ -61,6 +64,7 @@ async function sendEmailNotification(type: string, recipientEmail: string, data?
           logoUrl: settings?.logo_url || '/ipi-logo.jpg',
           appUrl: settings?.website || 'https://claimflow-pro-kappa.vercel.app',
           loginUrl: settings?.website || 'https://claimflow-pro-kappa.vercel.app',
+          currency: settings?.currency_symbol || data?.currency || '₹',
         },
       },
     });
@@ -68,6 +72,11 @@ async function sendEmailNotification(type: string, recipientEmail: string, data?
   } catch (e) {
     console.warn('Email notification error:', e);
   }
+}
+
+function queueEmailNotifications(tasks: Array<Promise<void>>) {
+  if (tasks.length === 0) return;
+  void Promise.allSettled(tasks);
 }
 
 function normalizeAppUrl(url?: string | null) {
@@ -103,6 +112,16 @@ async function getAdminApproverEmails() {
     .from('users')
     .select('email')
     .in('role', ['Admin', 'Super Admin'])
+    .eq('active', true);
+
+  return [...new Set((data || []).map((user: any) => user.email).filter(Boolean))];
+}
+
+async function getSuperAdminApproverEmails() {
+  const { data } = await supabase
+    .from('users')
+    .select('email')
+    .eq('role', 'Super Admin')
     .eq('active', true);
 
   return [...new Set((data || []).map((user: any) => user.email).filter(Boolean))];
@@ -149,6 +168,9 @@ export async function updateCompanySettings(settings: any) {
   const { data: existing } = await supabase.from('company_settings').select('id').limit(1).single();
   if (existing) {
     const { error } = await supabase.from('company_settings').update({ ...settings, updated_at: new Date().toISOString() } as any).eq('id', (existing as any).id);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from('company_settings').insert({ ...settings } as any);
     if (error) throw error;
   }
 }
@@ -267,7 +289,7 @@ export async function submitClaim(claim: {
 
   // Get manager
   const { data: userRecord } = await supabase.from('users').select('manager_email').eq('email', userEmail).single();
-  const managerEmail = (userRecord as any)?.manager_email || null;
+  const managerEmail = String((userRecord as any)?.manager_email || '').trim().toLowerCase() || null;
 
   const grandTotal = totalWithBill + totalWithoutBill;
 
@@ -400,9 +422,48 @@ export async function submitClaim(claim: {
       approve_link: buildClaimActionLink(appUrl, claimID, 'approve', 'manager', managerEmail),
       reject_link: buildClaimActionLink(appUrl, claimID, 'reject', 'manager', managerEmail)
     });
+    const superAdminApprovers = await getSuperAdminApproverEmails();
+    queueEmailNotifications(superAdminApprovers.map((email) =>
+      sendEmailNotification('claim_submitted_manager', email, {
+        claim_id: claimID,
+        claim_number: claimNumber,
+        employee_name: userName,
+        employee_email: userEmail,
+        project_site: claim.site,
+        primary_project_code: primaryProjectCode,
+        submission_date: new Date().toISOString(),
+        manager_status: 'Pending',
+        admin_status: 'Pending',
+        total_amount: grandTotal,
+        currency: 'â‚¹',
+        items: expenseItemsForEmail,
+        attachments: attachmentsForEmail,
+        approve_link: buildClaimActionLink(appUrl, claimID, 'approve', 'admin', email),
+        reject_link: buildClaimActionLink(appUrl, claimID, 'reject', 'admin', email),
+      })
+    ));
+    queueEmailNotifications(superAdminApprovers.map((email) =>
+      sendEmailNotification('claim_submitted_manager', email, {
+        claim_id: claimID,
+        claim_number: claimNumber,
+        employee_name: userName,
+        employee_email: userEmail,
+        project_site: claim.site,
+        primary_project_code: primaryProjectCode,
+        submission_date: new Date().toISOString(),
+        manager_status: 'Pending',
+        admin_status: 'Pending',
+        total_amount: grandTotal,
+        currency: 'â‚¹',
+        items: expenseItemsForEmail,
+        attachments: attachmentsForEmail,
+        approve_link: buildClaimActionLink(appUrl, claimID, 'approve', 'manager', email),
+        reject_link: buildClaimActionLink(appUrl, claimID, 'reject', 'manager', email),
+      })
+    ));
   } else if (status === 'Pending Admin Approval') {
     const adminApprovers = await getAdminApproverEmails();
-    adminApprovers.forEach((email) => {
+    queueEmailNotifications(adminApprovers.map((email) =>
       sendEmailNotification('claim_submitted_manager', email, {
         claim_id: claimID,
         claim_number: claimNumber,
@@ -419,8 +480,8 @@ export async function submitClaim(claim: {
         attachments: attachmentsForEmail,
         approve_link: buildClaimActionLink(appUrl, claimID, 'approve', 'admin', email),
         reject_link: buildClaimActionLink(appUrl, claimID, 'reject', 'admin', email),
-      });
-    });
+      })
+    ));
   }
 
   return { ok: true, id: claimNumber, message: `Claim ${claimNumber} submitted. Status: ${status}` };
@@ -504,7 +565,7 @@ export async function approveClaimAsManager(claimId: string, approverEmail: stri
       currency: '₹',
       status: 'Pending Admin Approval'
     });
-    adminApprovers.forEach((email) => {
+    queueEmailNotifications(adminApprovers.map((email) =>
       sendEmailNotification('claim_submitted_manager', email, {
         claim_id: claimId,
         claim_number: claimData.claim_number || claimId,
@@ -521,8 +582,8 @@ export async function approveClaimAsManager(claimId: string, approverEmail: stri
         attachments: mapAttachmentEmailData(claimData.drive_file_ids || []),
         approve_link: buildClaimActionLink(appUrl, claimId, 'approve', 'admin', email),
         reject_link: buildClaimActionLink(appUrl, claimId, 'reject', 'admin', email),
-      });
-    });
+      })
+    ));
   }
 }
 

@@ -23,3 +23,5 @@ android/app/release-keystore.jks
 .env
 .env.local
 .env.*.local
+
+.vercel
