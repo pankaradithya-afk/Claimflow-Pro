@@ -640,8 +640,9 @@ export async function rejectClaim(claimId: string, reason: string, rejectorEmail
   if (error) throw error;
 
   // Refund transaction
-  const { data: claim } = await supabase.from('claims').select('user_email, grand_total, total_with_bill, total_without_bill').eq('claim_id', claimId).single();
+  const { data: claim } = await supabase.from('claims').select('user_email, claim_number, grand_total, total_with_bill, total_without_bill').eq('claim_id', claimId).single();
   if (claim) {
+    const displayClaimNo = (claim as any).claim_number || claimId;
     const amount = parseFloat((claim as any).grand_total || ((claim as any).total_with_bill + (claim as any).total_without_bill) || 0);
     const currentBalance = await getCurrentBalance((claim as any).user_email);
     await supabase.from('transactions').insert({
@@ -652,13 +653,13 @@ export async function rejectClaim(claimId: string, reason: string, rejectorEmail
       credit: amount,
       debit: 0,
       balance_after: currentBalance + amount,
-      description: `Claim ${claimId} rejected - refund`,
+      description: `Claim ${displayClaimNo} rejected - refund`,
     });
 
     await logAudit('claim_rejected', rejectorEmail, 'claim', claimId, `Reason: ${reason}`);
-    await createNotification((claim as any).user_email, 'Claim Rejected', `Your claim ${claimId} was rejected. Reason: ${reason}`, 'error', claimId);
+    await createNotification((claim as any).user_email, 'Claim Rejected', `Your claim ${displayClaimNo} was rejected. Reason: ${reason}`, 'error', claimId);
     sendEmailNotification('claim_rejected', (claim as any).user_email, {
-      claim_no: claimId,
+      claim_no: displayClaimNo,
       total: amount,
       rejected_by: rejectorEmail,
       reason,
