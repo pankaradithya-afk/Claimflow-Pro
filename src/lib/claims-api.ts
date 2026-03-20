@@ -89,7 +89,12 @@ function buildClaimActionLink(appUrl: string, claimId: string, action: 'approve'
 function mapAttachmentEmailData(fileIds?: string[]) {
   return (fileIds || []).map((fileId) => {
     const parts = fileId.split('/');
-    return parts[parts.length - 1] || fileId;
+    const name = parts[parts.length - 1] || fileId;
+    const { data } = supabase.storage.from('claim-attachments').getPublicUrl(fileId);
+    return {
+      name,
+      url: data?.publicUrl || '',
+    };
   });
 }
 
@@ -329,7 +334,7 @@ export async function submitClaim(claim: {
     amount: (expense.amountWithBill || 0) + (expense.amountWithoutBill || 0),
     totalAmount: (expense.amountWithBill || 0) + (expense.amountWithoutBill || 0),
   }));
-  const appUrl = normalizeAppUrl(companySettings?.website);
+  const appUrl = normalizeAppUrl(companySettings?.website || 'https://claimflow-pro-kappa.vercel.app');
 
   // Notifications & audit
   await logAudit('claim_submitted', userEmail, 'claim', claimID, `Amount: ₹${grandTotal}`);
@@ -486,7 +491,7 @@ export async function approveClaimAsManager(claimId: string, approverEmail: stri
   await logAudit('claim_manager_approved', approverEmail, 'claim', claimId, description || undefined);
   if (claim) {
     const adminApprovers = await getAdminApproverEmails();
-    const appUrl = normalizeAppUrl((await getCompanySettings())?.website);
+    const appUrl = normalizeAppUrl((await getCompanySettings())?.website || 'https://claimflow-pro-kappa.vercel.app');
     await createNotification(claimData.user_email, 'Claim Approved by Manager', `Your claim ${claimId} has been approved by the manager and forwarded to admin.`, 'success', claimId);
     await Promise.all(adminApprovers.map((email) =>
       createNotification(email, 'Claim Awaiting Admin Approval', `${claimData.submitted_by} claim ${claimId} is pending admin approval.`, 'info', claimId)
@@ -932,7 +937,7 @@ export async function getManagerAssignedUsersWithBalances(managerEmail: string) 
 
 // ============= USERS DIRECTORY (for dropdowns) =============
 export async function getUsersDirectory() {
-  const { data } = await supabase.from('users').select('name, email').order('name');
+  const { data } = await supabase.from('users').select('name, email, manager_email, role').order('name');
   return (data || []) as any[];
 }
 

@@ -106,6 +106,10 @@ export default function ClaimHistoryView() {
   const [companySettings, setCompanySettings] = useState<any>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [reportPreview, setReportPreview] = useState<{ url: string; title: string } | null>(null);
+  const canViewUserColumn = isAdmin || user?.role === 'Manager';
+  const visibleUsers = user?.role === 'Manager'
+    ? users.filter((u) => u.email === user.email || u.manager_email === user.email)
+    : users;
 
   const loadHistory = async () => {
     if (!user) return;
@@ -120,9 +124,9 @@ export default function ClaimHistoryView() {
 
   useEffect(() => { loadHistory(); }, [user]);
   useEffect(() => { 
-    if (isAdmin) getUsersDirectory().then(setUsers); 
+    if (canViewUserColumn) getUsersDirectory().then(setUsers); 
     getCompanySettings().then(setCompanySettings);
-  }, [isAdmin]);
+  }, [canViewUserColumn]);
 
   const viewClaim = async (claimId: string) => {
     const data = await getClaimById(claimId);
@@ -167,14 +171,14 @@ export default function ClaimHistoryView() {
       <div className="glass-card p-4">
         <h3 className="font-semibold mb-3 flex items-center gap-2"><Filter className="h-4 w-4" /> Filters</h3>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-          {isAdmin && (
+          {canViewUserColumn && (
             <div>
               <Label className="text-xs">User</Label>
               <Select value={filters.userEmail} onValueChange={v => setFilters({ ...filters, userEmail: v === 'all' ? '' : v })}>
                 <SelectTrigger><SelectValue placeholder="All users" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Users</SelectItem>
-                  {users.map(u => <SelectItem key={u.email} value={u.email}>{u.name}</SelectItem>)}
+                  {visibleUsers.map(u => <SelectItem key={u.email} value={u.email}>{u.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -254,7 +258,7 @@ export default function ClaimHistoryView() {
                   </div>
                   <p className="font-semibold mt-1">{c.site}</p>
                   <p className="text-sm text-muted-foreground">{formatDate(c.date)}</p>
-                  {isAdmin && <p className="text-xs text-muted-foreground">By: {c.submittedBy}</p>}
+                  {canViewUserColumn && <p className="text-xs text-muted-foreground">By: {c.submittedBy}</p>}
                 </div>
                 {statusBadge(c.status)}
               </div>
@@ -299,7 +303,7 @@ export default function ClaimHistoryView() {
                 </th>
                 <th className="text-left p-3 font-semibold">ID</th>
                 <th className="text-left p-3 font-semibold">Date</th>
-                {isAdmin && <th className="text-left p-3 font-semibold">User</th>}
+                {canViewUserColumn && <th className="text-left p-3 font-semibold">User</th>}
                 <th className="text-left p-3 font-semibold">Site</th>
                 <th className="text-right p-3 font-semibold">With Bill</th>
                 <th className="text-right p-3 font-semibold">Without Bill</th>
@@ -312,13 +316,13 @@ export default function ClaimHistoryView() {
               {loading ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <tr key={i} className="border-b border-border">
-                    {Array.from({ length: isAdmin ? 10 : 9 }).map((_, j) => (
+                    {Array.from({ length: canViewUserColumn ? 10 : 9 }).map((_, j) => (
                       <td key={j} className="p-3"><Skeleton className="h-4 w-full" /></td>
                     ))}
                   </tr>
                 ))
               ) : claims.length === 0 ? (
-                <tr><td colSpan={isAdmin ? 10 : 9} className="text-center p-8 text-muted-foreground">No claims found</td></tr>
+                <tr><td colSpan={canViewUserColumn ? 10 : 9} className="text-center p-8 text-muted-foreground">No claims found</td></tr>
               ) : claims.map(c => (
                 <tr key={c.claimId} className={`border-b border-border hover:bg-muted/30 transition-colors ${selectedIds.has(c.claimId) ? 'bg-primary/5' : ''}`}>
                   <td className="p-3">
@@ -329,7 +333,7 @@ export default function ClaimHistoryView() {
                   </td>
                   <td className="p-3 font-mono text-xs">{c.claimId}</td>
                   <td className="p-3">{formatDate(c.date)}</td>
-                  {isAdmin && <td className="p-3">{c.submittedBy}</td>}
+                  {canViewUserColumn && <td className="p-3">{c.submittedBy}</td>}
                   <td className="p-3">{c.site}</td>
                   <td className="p-3 text-right">₹{(c.totalWithBill ?? 0).toFixed(2)}</td>
                   <td className="p-3 text-right">₹{(c.totalWithoutBill ?? 0).toFixed(2)}</td>

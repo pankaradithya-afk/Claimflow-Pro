@@ -40,6 +40,13 @@ export default function TransactionsView() {
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<any[]>([]);
   const [filters, setFilters] = useState({ userEmail: '', startDate: '', endDate: '', type: '' });
+  const canViewUserColumn = isAdmin || user?.role === 'Manager';
+  const visibleUsers = user?.role === 'Manager'
+    ? users.filter((u) => u.email === user.email || u.manager_email === user.email)
+    : users;
+  const userNameByEmail = Object.fromEntries(
+    users.map((u) => [String(u.email || '').trim().toLowerCase(), u.name || u.email])
+  );
 
   const loadTransactions = async () => {
     if (!user) return;
@@ -57,21 +64,23 @@ export default function TransactionsView() {
   };
 
   useEffect(() => { loadTransactions(); }, [user]);
-  useEffect(() => { if (isAdmin) getUsersDirectory().then(setUsers); }, [isAdmin]);
+  useEffect(() => {
+    if (canViewUserColumn) getUsersDirectory().then(setUsers);
+  }, [canViewUserColumn]);
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4">
       <div className="glass-card p-4">
         <h3 className="font-semibold mb-3 flex items-center gap-2"><Filter className="h-4 w-4" /> Filters</h3>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-          {isAdmin && (
+          {canViewUserColumn && (
             <div>
               <Label className="text-xs">User</Label>
-              <Select value={filters.userEmail} onValueChange={v => setFilters({ ...filters, userEmail: v })}>
+              <Select value={filters.userEmail} onValueChange={v => setFilters({ ...filters, userEmail: v === 'all' ? '' : v })}>
                 <SelectTrigger><SelectValue placeholder="All users" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Users</SelectItem>
-                  {users.map(u => <SelectItem key={u.email} value={u.email}>{u.name}</SelectItem>)}
+                  {visibleUsers.map(u => <SelectItem key={u.email} value={u.email}>{u.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -114,16 +123,16 @@ export default function TransactionsView() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead><tr className="bg-muted/50"><th className="p-3 text-left">Date</th>{isAdmin && <th className="p-3 text-left">User</th>}<th className="p-3 text-left">Type</th><th className="p-3 text-left">Description</th><th className="p-3 text-right">Credit</th><th className="p-3 text-right">Debit</th><th className="p-3 text-right">Balance</th></tr></thead>
+            <thead><tr className="bg-muted/50"><th className="p-3 text-left">Date</th>{canViewUserColumn && <th className="p-3 text-left">User</th>}<th className="p-3 text-left">Type</th><th className="p-3 text-left">Description</th><th className="p-3 text-right">Credit</th><th className="p-3 text-right">Debit</th><th className="p-3 text-right">Balance</th></tr></thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} className="text-center p-8 text-muted-foreground">Loading...</td></tr>
+                <tr><td colSpan={canViewUserColumn ? 7 : 6} className="text-center p-8 text-muted-foreground">Loading...</td></tr>
               ) : transactions.length === 0 ? (
-                <tr><td colSpan={7} className="text-center p-8 text-muted-foreground">No transactions</td></tr>
+                <tr><td colSpan={canViewUserColumn ? 7 : 6} className="text-center p-8 text-muted-foreground">No transactions</td></tr>
               ) : transactions.map((t, i) => (
                 <tr key={i} className="border-b border-border hover:bg-muted/30">
                   <td className="p-3 text-xs">{formatDate(t.createdAt)}</td>
-                  {isAdmin && <td className="p-3">{t.email}</td>}
+                  {canViewUserColumn && <td className="p-3">{userNameByEmail[String(t.email || '').trim().toLowerCase()] || t.email}</td>}
                   <td className="p-3">{typeBadge(t.type)}</td>
                   <td className="p-3">{t.description}</td>
                   <td className="p-3 text-right text-success font-medium">{t.credit > 0 ? `₹${t.credit.toFixed(2)}` : ''}</td>
