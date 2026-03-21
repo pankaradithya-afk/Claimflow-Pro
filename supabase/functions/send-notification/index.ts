@@ -7,6 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const DEFAULT_FROM_NAME = 'Claim App Notifications';
+
 Deno.serve(async (req) => {
   console.log('📧 Email function invoked:', req.method, req.url);
   console.log('Request received from:', req.headers.get('origin') || 'unknown');
@@ -41,10 +43,12 @@ Deno.serve(async (req) => {
     // Validate Gmail credentials are configured
     const GMAIL_USER = Deno.env.get('GMAIL_USER');
     const GMAIL_APP_PASSWORD = Deno.env.get('GMAIL_APP_PASSWORD');
+    const EMAIL_FROM_NAME = (Deno.env.get('EMAIL_FROM_NAME') || DEFAULT_FROM_NAME).trim();
     
     console.log('🔑 Gmail credentials check:');
     console.log('   GMAIL_USER present:', !!GMAIL_USER);
     console.log('   GMAIL_APP_PASSWORD present:', !!GMAIL_APP_PASSWORD);
+    console.log('   EMAIL_FROM_NAME:', EMAIL_FROM_NAME);
 
     if (!GMAIL_USER || !GMAIL_APP_PASSWORD) {
       console.error('❌ Gmail credentials not configured in Supabase secrets');
@@ -148,13 +152,13 @@ Deno.serve(async (req) => {
       // Fallback: still allow email send even if template fails, use a default
       console.warn('⚠️ Using fallback template due to error');
       template = {
-        subject: `ClaimFlow Notification - ${type}`,
-        html: `<p>ClaimFlow Notification</p><p>Type: ${type}</p><p>Data: ${JSON.stringify(data)}</p>`
+        subject: `${EMAIL_FROM_NAME} - ${type}`,
+        html: `<p>${EMAIL_FROM_NAME}</p><p>Type: ${type}</p><p>Data: ${JSON.stringify(data)}</p>`
       };
     }
 
     console.log('📤 Preparing to send email');
-    console.log('   From: ClaimFlow <' + GMAIL_USER + '>');
+    console.log('   From:', `${EMAIL_FROM_NAME} <${GMAIL_USER}>`);
     console.log('   To:', recipientEmail);
     console.log('   Subject:', template.subject);
 
@@ -163,7 +167,7 @@ Deno.serve(async (req) => {
     
     try {
       const mailResult = await transporter.sendMail({
-        from: `"ClaimFlow" <${GMAIL_USER}>`,
+        from: `"${EMAIL_FROM_NAME}" <${GMAIL_USER}>`,
         to: recipientEmail,
         subject: template.subject,
         html: template.html,

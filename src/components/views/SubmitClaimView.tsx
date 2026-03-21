@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PlusCircle, Trash2, Send, Loader2, Wallet } from 'lucide-react';
+import { PlusCircle, Trash2, Send, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import FileUpload, { FileUploadHandle } from '@/components/views/FileUpload';
+import RupeeIcon from '@/components/icons/RupeeIcon';
 
 interface ExpenseRow {
   id: string;
@@ -125,7 +126,7 @@ export default function SubmitClaimView() {
       {balance !== null && (
         <div className="glass-card p-3 sm:p-4 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-l-4 border-l-primary">
           <div className="flex items-center gap-3">
-            <Wallet className="h-6 w-6 text-primary flex-shrink-0" />
+            <RupeeIcon className="h-6 w-6 text-primary flex-shrink-0" />
             <div>
               <p className="text-xs sm:text-sm text-muted-foreground">Available Balance</p>
               <p className="text-xl sm:text-2xl font-bold text-primary">₹{balance.toFixed(2)}</p>

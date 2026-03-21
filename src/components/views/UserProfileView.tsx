@@ -7,10 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { User, Lock, Wallet, FileText, Loader2, Eye, EyeOff, Save } from 'lucide-react';
+import { User, Lock, FileText, Loader2, Eye, EyeOff, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import ImageUpload from '@/components/ImageUpload';
+import RupeeIcon from '@/components/icons/RupeeIcon';
 
 export default function UserProfileView() {
   const { user } = useAuth();
@@ -135,7 +136,7 @@ export default function UserProfileView() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground flex items-center gap-1">
-              <Wallet className="h-4 w-4" /> Current Balance
+              <RupeeIcon className="h-4 w-4" /> Current Balance
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -157,7 +158,7 @@ export default function UserProfileView() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-muted-foreground flex items-center gap-1">
-              <Wallet className="h-4 w-4" /> Transactions
+              <RupeeIcon className="h-4 w-4" /> Transactions
             </CardTitle>
           </CardHeader>
           <CardContent>

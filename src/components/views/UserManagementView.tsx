@@ -12,15 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
-
-// Rupee icon component
-function RupeeIcon(props: any) {
-  return (
-    <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 3h12M6 3v18M18 9H8c-1 0-2 1-2 2v2c0 1 1 2 2 2h10M8 15h10" />
-    </svg>
-  );
-}
+import RupeeIcon from '@/components/icons/RupeeIcon';
 
 export default function UserManagementView() {
   const { user } = useAuth();
