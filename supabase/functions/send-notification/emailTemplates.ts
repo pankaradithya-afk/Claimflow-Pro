@@ -1,16 +1,98 @@
+// Constants
 const DEFAULT_COMPANY_NAME = 'Irrigation Products International Pvt Ltd';
 const DEFAULT_SUBTITLE = 'Claims Management System';
 const DEFAULT_SUPPORT_EMAIL = 'projects@ipi-india.com';
 const DEFAULT_CURRENCY = '₹';
+const DEFAULT_PRIMARY_COLOR = '#0f3b5c';
+const DEFAULT_SECONDARY_COLOR = '#2c7da0';
+const DEFAULT_ACCENT_COLOR = '#61a5c2';
 
-const emailStyles = "font-family: Arial, sans-serif; color: #1f2937; line-height: 1.6;";
-const containerStyles = "max-width: 760px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; background: #ffffff;";
-const buttonBase = "display: inline-block; padding: 12px 20px; margin-right: 12px; border-radius: 8px; font-weight: 700; text-decoration: none; color: #ffffff;";
-const tableStyles = "width: 100%; border-collapse: collapse; margin: 16px 0; background: #ffffff;";
-const thStyles = "background: #f3f4f6; padding: 10px; border: 1px solid #d1d5db; text-align: left; font-size: 13px;";
-const tdStyles = "padding: 10px; border: 1px solid #d1d5db; font-size: 13px; vertical-align: top;";
+// Modern Email Styles
+const emailStyles = {
+  container: `
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    max-width: 600px;
+    margin: 0 auto;
+    background-color: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+  `,
+  header: `
+    background: linear-gradient(135deg, ${DEFAULT_PRIMARY_COLOR} 0%, ${DEFAULT_SECONDARY_COLOR} 100%);
+    padding: 32px 24px;
+    text-align: center;
+    color: white;
+  `,
+  content: `
+    padding: 32px 24px;
+    background: #ffffff;
+  `,
+  footer: `
+    background: #f8f9fa;
+    padding: 24px;
+    text-align: center;
+    border-top: 1px solid #e9ecef;
+    font-size: 12px;
+    color: #6c757d;
+  `,
+  card: `
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+    border-left: 4px solid ${DEFAULT_SECONDARY_COLOR};
+  `,
+  button: `
+    display: inline-block;
+    padding: 12px 28px;
+    margin: 8px;
+    border-radius: 8px;
+    font-weight: 600;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.3s ease;
+  `,
+  table: `
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 20px 0;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  `,
+  th: `
+    background: #f1f3f5;
+    padding: 12px 16px;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
+  `,
+  td: `
+    padding: 12px 16px;
+    font-size: 14px;
+    border-bottom: 1px solid #e9ecef;
+    vertical-align: top;
+  `,
+  status: {
+    submitted: 'background: #e3f2fd; color: #0b5e7e; border-left-color: #0b5e7e;',
+    approved: 'background: #e8f5e9; color: #1e7e34; border-left-color: #1e7e34;',
+    rejected: 'background: #ffebee; color: #c62828; border-left-color: #c62828;',
+    pending: 'background: #fff3e0; color: #e65100; border-left-color: #e65100;'
+  }
+};
 
-type Attachment = string | { name?: string; url?: string };
+// Interfaces
+interface Attachment {
+  name?: string;
+  url?: string;
+  size?: string;
+  type?: string;
+}
 
 interface BrandData {
   companyName?: string;
@@ -21,12 +103,29 @@ interface BrandData {
   loginUrl?: string;
   userGuideUrl?: string;
   currency?: string;
+  primaryColor?: string;
+  secondaryColor?: string;
 }
 
-function normalizeCurrencySymbol(currency?: string) {
+interface ClaimItem {
+  category: string;
+  projectCode?: string;
+  claimDate?: string;
+  description: string;
+  amountWithBill?: number;
+  amountWithoutBill?: number;
+  totalAmount?: number;
+  amount?: number;
+  billNumber?: string;
+  billDate?: string;
+  remarks?: string;
+}
+
+// Helper Functions
+function normalizeCurrencySymbol(currency?: string): string {
   const value = String(currency || '').trim();
-  if (!value) return '&#8377;';
-  if (value === '₹' || value === 'â‚¹' || value === 'Ã¢â€šÂ¹') return '&#8377;';
+  if (!value) return '₹';
+  if (value === '₹' || value === 'â‚¹' || value === 'Ã¢â€šÂ¹') return '₹';
   return value;
 }
 
@@ -35,72 +134,118 @@ function brand(data: BrandData) {
     companyName: data.companyName || DEFAULT_COMPANY_NAME,
     companySubtitle: data.companySubtitle || DEFAULT_SUBTITLE,
     supportEmail: data.supportEmail || DEFAULT_SUPPORT_EMAIL,
-    logoUrl: data.logoUrl || '/ipi-logo.jpg',
+    logoUrl: data.logoUrl || '/api/placeholder/150/60',
     appUrl: data.appUrl || '',
     loginUrl: data.loginUrl || '',
     userGuideUrl: data.userGuideUrl || '',
     currency: normalizeCurrencySymbol(data.currency || DEFAULT_CURRENCY),
+    primaryColor: data.primaryColor || DEFAULT_PRIMARY_COLOR,
+    secondaryColor: data.secondaryColor || DEFAULT_SECONDARY_COLOR,
   };
 }
 
-function fmtAmount(value?: number, currency = DEFAULT_CURRENCY) {
-  return `${normalizeCurrencySymbol(currency)}${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format(Number(value || 0))}`;
+function fmtAmount(value?: number, currency = DEFAULT_CURRENCY): string {
+  const amount = Number(value || 0);
+  return `${normalizeCurrencySymbol(currency)}${new Intl.NumberFormat('en-IN', {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2
+  }).format(amount)}`;
 }
 
-function fmtDate(value?: string) {
+function fmtDate(value?: string | Date): string {
   if (!value) return '';
-  return new Date(value).toLocaleString('en-IN');
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return '';
+  return date.toLocaleString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 }
 
-function safeLink(url?: string) {
-  return (url || '').trim();
+function formatCurrency(value?: number): string {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(value || 0);
 }
 
-function renderAttachments(attachments?: Attachment[]) {
+function renderAttachments(attachments?: Attachment[]): string {
   if (!attachments || attachments.length === 0) return '';
-  const rows = attachments.map((attachment) => {
+  
+  const attachmentsHtml = attachments.map(attachment => {
     if (typeof attachment === 'string') {
-      return `<li style="margin: 4px 0;">${attachment}</li>`;
+      return `
+        <div style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 8px; margin-bottom: 8px;">
+          <span style="margin-right: 8px;">📎</span>
+          <span>${attachment}</span>
+        </div>
+      `;
     }
-    if (attachment.url) {
-      const label = attachment.name || 'Open attachment';
-      return `<li style="margin: 8px 0;"><a href="${attachment.url}" style="color: #2563eb; text-decoration: underline;">${label}</a><div style="font-size: 12px; color: #6b7280;">Open or download this file</div></li>`;
-    }
-    return `<li style="margin: 4px 0;">${attachment.name || ''}</li>`;
+    
+    const fileIcon = attachment.type?.startsWith('image/') ? '🖼️' : 
+                     attachment.type === 'application/pdf' ? '📄' : '📎';
+    
+    return `
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: white; border-radius: 8px; margin-bottom: 8px; border: 1px solid #e9ecef;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 20px;">${fileIcon}</span>
+          <div>
+            <div style="font-weight: 500;">${attachment.name || 'Attachment'}</div>
+            ${attachment.size ? `<div style="font-size: 11px; color: #6c757d;">${attachment.size}</div>` : ''}
+          </div>
+        </div>
+        ${attachment.url ? `
+          <a href="${attachment.url}" style="background: ${DEFAULT_SECONDARY_COLOR}; color: white; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 12px;">
+            Download
+          </a>
+        ` : ''}
+      </div>
+    `;
   }).join('');
-
+  
   return `
-    <div style="margin-top: 16px; padding: 14px; background: #f9fafb; border-left: 4px solid #2563eb;">
-      <p style="margin: 0 0 8px 0; font-weight: 700;">Attachments</p>
-      <ul style="margin: 0; padding-left: 18px;">${rows}</ul>
+    <div style="margin-top: 24px;">
+      <h3 style="margin: 0 0 12px 0; font-size: 16px;">📎 Attachments (${attachments.length})</h3>
+      ${attachmentsHtml}
     </div>
   `;
 }
 
-function wrapEmail(title: string, body: string, data: BrandData) {
+function wrapEmail(title: string, body: string, data: BrandData): string {
   const info = brand(data);
-  const logo = info.logoUrl ? `<img src="${info.logoUrl}" alt="${info.companyName}" style="max-height: 72px; margin-bottom: 12px;" />` : '';
-
+  
   return `
-    <div style="${containerStyles}">
-      <div style="text-align: center; padding-bottom: 16px; border-bottom: 2px solid #e5e7eb; margin-bottom: 24px;">
-        ${logo}
-        <h1 style="margin: 0; font-size: 24px; color: #0f172a;">${info.companyName}</h1>
-        <p style="margin: 6px 0 0 0; font-size: 14px; color: #4b5563;">${info.companySubtitle}</p>
+    <div style="${emailStyles.container}">
+      <div style="${emailStyles.header}">
+        ${info.logoUrl ? `<img src="${info.logoUrl}" alt="${info.companyName}" style="max-height: 50px; margin-bottom: 16px;" />` : ''}
+        <h1 style="margin: 0; font-size: 24px; font-weight: 600;">${info.companyName}</h1>
+        <p style="margin: 8px 0 0 0; opacity: 0.9;">${info.companySubtitle}</p>
       </div>
-      <div style="${emailStyles}">
-        <h2 style="margin-top: 0; color: #111827;">${title}</h2>
+      
+      <div style="${emailStyles.content}">
+        <h2 style="margin: 0 0 20px 0; font-size: 20px; color: ${info.primaryColor};">${title}</h2>
         ${body}
       </div>
-      <div style="margin-top: 28px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280;">
-        <p style="margin: 0 0 8px 0;">Need Help?</p>
-        <p style="margin: 0 0 8px 0;">Email: ${info.supportEmail}</p>
-        <p style="margin: 0;">This is an automated message from ${info.companyName} ${info.companySubtitle}. Please do not reply to this email.</p>
+      
+      <div style="${emailStyles.footer}">
+        <p style="margin: 0 0 12px 0;"><strong>Need Help?</strong></p>
+        <p style="margin: 0 0 8px 0;">
+          📧 <a href="mailto:${info.supportEmail}" style="color: ${info.secondaryColor}; text-decoration: none;">${info.supportEmail}</a>
+        </p>
+        <p style="margin: 0; font-size: 11px;">
+          This is an automated message from ${info.companyName}. Please do not reply to this email.
+        </p>
       </div>
     </div>
   `;
 }
 
+// Template Functions
 export function welcomeUserTemplate(data: {
   employeeName?: string;
   name?: string;
@@ -109,33 +254,48 @@ export function welcomeUserTemplate(data: {
   tempPassword?: string;
   loginUrl?: string;
   userGuideUrl?: string;
+  additionalInfo?: string;
 } & BrandData): { subject: string; html: string } {
   const info = brand(data);
   const userName = data.employeeName || data.name || 'User';
-  const loginLink = safeLink(data.loginUrl || info.loginUrl);
-  const guideLink = safeLink(data.userGuideUrl || info.userGuideUrl);
+  const loginLink = data.loginUrl || info.loginUrl;
+  const guideLink = data.userGuideUrl || info.userGuideUrl;
 
   const body = `
-    <p>Dear ${userName},</p>
-    <p>Your account has been successfully created in the ${info.companyName} ${info.companySubtitle} with the role: ${data.role || 'User'}.</p>
-    <div style="padding: 16px; background: #f9fafb; border-left: 4px solid #16a34a; margin: 16px 0;">
-      <p style="margin: 0 0 8px 0;"><strong>Your Login Credentials:</strong></p>
-      <p style="margin: 0 0 6px 0;">Email: ${data.email || ''}</p>
-      <p style="margin: 0;">Password: ${data.tempPassword || ''}</p>
+    <p>Dear <strong>${userName}</strong>,</p>
+    <p>Welcome to the ${info.companyName} Claims Management System! Your account has been successfully created with the role: <strong>${data.role || 'User'}</strong>.</p>
+    
+    <div style="${emailStyles.card}">
+      <h3 style="margin: 0 0 12px 0; font-size: 16px;">🔐 Your Login Credentials</h3>
+      <p style="margin: 0 0 8px 0;"><strong>Email:</strong> ${data.email || ''}</p>
+      <p style="margin: 0;"><strong>Temporary Password:</strong> <code style="background: white; padding: 4px 8px; border-radius: 4px;">${data.tempPassword || ''}</code></p>
     </div>
-    <p>Please change your password after first login for security.</p>
-    <p><strong>Getting Started:</strong></p>
-    <ol>
-      <li>Access the system: ${loginLink || ''}</li>
-      <li>Download the user guide: ${guideLink || ''}</li>
-      <li>Use your credentials above to login</li>
+    
+    <div style="background: #fff3e0; border-radius: 8px; padding: 12px; margin: 16px 0;">
+      <p style="margin: 0; font-size: 13px;">⚠️ For security reasons, please change your password after your first login.</p>
+    </div>
+    
+    <h3 style="margin: 24px 0 12px 0; font-size: 16px;">📋 Getting Started</h3>
+    <ol style="margin: 0 0 20px 0; padding-left: 20px;">
+      <li style="margin-bottom: 8px;">Access the system: ${loginLink ? `<a href="${loginLink}" style="color: ${info.secondaryColor};">${loginLink}</a>` : 'Link not provided'}</li>
+      ${guideLink ? `<li style="margin-bottom: 8px;">Download the <a href="${guideLink}" style="color: ${info.secondaryColor};">User Guide</a> for detailed instructions</li>` : ''}
+      <li>Use your credentials above to log in</li>
     </ol>
-    ${loginLink ? `<p><a href="${loginLink}" style="${buttonBase} background: #2563eb;">Access Claims System</a></p>` : ''}
+    
+    ${data.additionalInfo ? `<p style="margin-top: 20px;">${data.additionalInfo}</p>` : ''}
+    
+    ${loginLink ? `
+      <div style="text-align: center; margin-top: 28px;">
+        <a href="${loginLink}" style="${emailStyles.button} background: ${info.secondaryColor}; color: white;">
+          Access Claims System →
+        </a>
+      </div>
+    ` : ''}
   `;
 
   return {
-    subject: `Welcome to ${info.companyName}`,
-    html: wrapEmail(`Welcome to ${info.companyName}`, body, info),
+    subject: `🎉 Welcome to ${info.companyName} Claims System`,
+    html: wrapEmail('Welcome Aboard!', body, info),
   };
 }
 
@@ -148,76 +308,88 @@ export function claimSubmittedUserTemplate(data: {
   project_site?: string;
   primary_project_code?: string;
   status?: string;
-  items: Array<{
-    category: string;
-    projectCode?: string;
-    claimDate?: string;
-    description: string;
-    amountWithBill?: number;
-    amountWithoutBill?: number;
-    totalAmount?: number;
-    amount?: number;
-  }>;
+  items: ClaimItem[];
   total_amount: number;
   total_with_bill?: number;
   total_without_bill?: number;
   attachments?: Attachment[];
   employee_name?: string;
+  summary_note?: string;
 } & BrandData): { subject: string; html: string } {
   const info = brand(data);
+  const status = data.status || 'Pending Manager Approval';
+  const statusStyle = status.includes('Approved') ? 'approved' : 
+                      status.includes('Rejected') ? 'rejected' : 'submitted';
 
   const rows = data.items.map((item) => `
     <tr>
-      <td style="${tdStyles}">${item.category}</td>
-      <td style="${tdStyles}">${item.projectCode || ''}</td>
-      <td style="${tdStyles}">${item.claimDate || ''}</td>
-      <td style="${tdStyles}">${item.description}</td>
-      <td style="${tdStyles}; text-align: right;">${fmtAmount(item.amountWithBill, info.currency)}</td>
-      <td style="${tdStyles}; text-align: right;">${fmtAmount(item.amountWithoutBill, info.currency)}</td>
-      <td style="${tdStyles}; text-align: right; font-weight: 700;">${fmtAmount(item.totalAmount ?? item.amount, info.currency)}</td>
+      <td style="${emailStyles.td}"><strong>${item.category}</strong></td>
+      <td style="${emailStyles.td}">${item.projectCode || '-'}</td>
+      <td style="${emailStyles.td}">${item.claimDate ? fmtDate(item.claimDate) : '-'}</td>
+      <td style="${emailStyles.td}">${item.description}</td>
+      <td style="${emailStyles.td}; text-align: right;">${fmtAmount(item.amountWithBill, info.currency)}</td>
+      <td style="${emailStyles.td}; text-align: right;">${fmtAmount(item.amountWithoutBill, info.currency)}</td>
+      <td style="${emailStyles.td}; text-align: right; font-weight: 700;">${fmtAmount(item.totalAmount ?? item.amount, info.currency)}</td>
     </tr>
   `).join('');
 
   const body = `
-    <p>Dear ${data.employee_name || data.submitted_by || 'User'},</p>
-    <p>Your claim has been submitted successfully.</p>
-    <div style="padding: 16px; background: #f9fafb; border-left: 4px solid #2563eb; margin: 16px 0;">
-      <p style="margin: 0 0 6px 0;"><strong>Claim Submitted</strong></p>
-      <p style="margin: 0 0 6px 0;">ID: ${data.claim_number} • Generated on ${fmtDate(data.generated_on)}</p>
-      <p style="margin: 0 0 6px 0;">Submitted By: ${data.submitted_by || data.employee_name || ''}</p>
-      <p style="margin: 0 0 6px 0;">Submission Date: ${fmtDate(data.submission_date)}</p>
-      <p style="margin: 0 0 6px 0;">Project Site: ${data.project_site || ''}</p>
-      <p style="margin: 0 0 6px 0;">Primary Project Code: ${data.primary_project_code || ''}</p>
-      <p style="margin: 0;">Status: ${data.status || 'Pending Manager Approval'}</p>
+    <p>Dear <strong>${data.employee_name || data.submitted_by || 'User'}</strong>,</p>
+    <p>Your claim has been submitted successfully and is now under review.</p>
+    
+    <div style="${emailStyles.card}">
+      <h3 style="margin: 0 0 12px 0; font-size: 16px;">📋 Claim Details</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div><strong>Claim ID:</strong> ${data.claim_number}</div>
+        <div><strong>Status:</strong> <span style="display: inline-block; padding: 2px 8px; background: #e3f2fd; border-radius: 12px; font-size: 12px;">${status}</span></div>
+        <div><strong>Generated On:</strong> ${fmtDate(data.generated_on)}</div>
+        <div><strong>Submitted By:</strong> ${data.submitted_by || data.employee_name || ''}</div>
+        <div><strong>Project Site:</strong> ${data.project_site || '-'}</div>
+        <div><strong>Project Code:</strong> ${data.primary_project_code || '-'}</div>
+      </div>
     </div>
-    <table style="${tableStyles}">
+    
+    <h3 style="margin: 24px 0 12px 0; font-size: 16px;">💰 Claim Items</h3>
+    <table style="${emailStyles.table}">
       <thead>
         <tr>
-          <th style="${thStyles}">Category</th>
-          <th style="${thStyles}">Project Code</th>
-          <th style="${thStyles}">Claim Date</th>
-          <th style="${thStyles}">Description</th>
-          <th style="${thStyles}">With Bill Amount (${info.currency})</th>
-          <th style="${thStyles}">Without Bill Amount (${info.currency})</th>
-          <th style="${thStyles}">Total Amount (${info.currency})</th>
+          <th style="${emailStyles.th}">Category</th>
+          <th style="${emailStyles.th}">Project Code</th>
+          <th style="${emailStyles.th}">Claim Date</th>
+          <th style="${emailStyles.th}">Description</th>
+          <th style="${emailStyles.th}">With Bill</th>
+          <th style="${emailStyles.th}">Without Bill</th>
+          <th style="${emailStyles.th}">Total</th>
         </tr>
       </thead>
-      <tbody>
-        ${rows}
-        <tr>
-          <td colspan="4" style="${tdStyles}; text-align: right; font-weight: 700;">Total</td>
-          <td style="${tdStyles}; text-align: right; font-weight: 700;">${fmtAmount(data.total_with_bill, info.currency)}</td>
-          <td style="${tdStyles}; text-align: right; font-weight: 700;">${fmtAmount(data.total_without_bill, info.currency)}</td>
-          <td style="${tdStyles}; text-align: right; font-weight: 700;">${fmtAmount(data.total_amount, info.currency)}</td>
+      <tbody>${rows}</tbody>
+      <tfoot>
+        <tr style="background: #f8f9fa; font-weight: 700;">
+          <td colspan="4" style="${emailStyles.td}; text-align: right;">Total</td>
+          <td style="${emailStyles.td}; text-align: right;">${fmtAmount(data.total_with_bill, info.currency)}</td>
+          <td style="${emailStyles.td}; text-align: right;">${fmtAmount(data.total_without_bill, info.currency)}</td>
+          <td style="${emailStyles.td}; text-align: right;">${fmtAmount(data.total_amount, info.currency)}</td>
         </tr>
-      </tbody>
+      </tfoot>
     </table>
+    
+    ${data.summary_note ? `
+      <div style="background: #e8f0fe; border-radius: 8px; padding: 12px; margin: 16px 0;">
+        <strong>📝 Summary Note:</strong>
+        <p style="margin: 8px 0 0 0;">${data.summary_note}</p>
+      </div>
+    ` : ''}
+    
     ${renderAttachments(data.attachments)}
+    
+    <div style="background: #e8f5e9; border-radius: 8px; padding: 12px; margin-top: 20px;">
+      <p style="margin: 0; font-size: 13px;">✓ You will receive a notification once your claim is reviewed by the manager.</p>
+    </div>
   `;
 
   return {
-    subject: `Claim Submitted - ${data.claim_number}`,
-    html: wrapEmail('Claim Submitted', body, info),
+    subject: `📝 Claim Submitted - ${data.claim_number}`,
+    html: wrapEmail('Claim Submitted Successfully', body, info),
   };
 }
 
@@ -230,72 +402,91 @@ export function claimSubmittedManagerTemplate(data: {
   submission_date?: string;
   manager_status?: string;
   admin_status?: string;
-  items: Array<{
-    category: string;
-    projectCode?: string;
-    claimDate?: string;
-    description: string;
-    amountWithBill?: number;
-    amountWithoutBill?: number;
-    totalAmount?: number;
-    amount?: number;
-  }>;
+  items: ClaimItem[];
   total_amount: number;
   attachments?: Attachment[];
   approve_link: string;
   reject_link: string;
+  deadline_days?: number;
+  priority?: 'high' | 'medium' | 'low';
 } & BrandData): { subject: string; html: string } {
   const info = brand(data);
+  const priority = data.priority || 'medium';
+  const priorityColor = priority === 'high' ? '#dc2626' : priority === 'medium' ? '#f59e0b' : '#10b981';
 
   const rows = data.items.map((item) => `
     <tr>
-      <td style="${tdStyles}">${item.category}</td>
-      <td style="${tdStyles}">${item.projectCode || ''}</td>
-      <td style="${tdStyles}">${item.claimDate || ''}</td>
-      <td style="${tdStyles}">${item.description}</td>
-      <td style="${tdStyles}; text-align: right;">${fmtAmount(item.amountWithBill, info.currency)}</td>
-      <td style="${tdStyles}; text-align: right;">${fmtAmount(item.amountWithoutBill, info.currency)}</td>
-      <td style="${tdStyles}; text-align: right; font-weight: 700;">${fmtAmount(item.totalAmount ?? item.amount, info.currency)}</td>
+      <td style="${emailStyles.td}"><strong>${item.category}</strong></td>
+      <td style="${emailStyles.td}">${item.projectCode || '-'}</td>
+      <td style="${emailStyles.td}">${item.claimDate ? fmtDate(item.claimDate) : '-'}</td>
+      <td style="${emailStyles.td}">${item.description}</td>
+      <td style="${emailStyles.td}; text-align: right;">${fmtAmount(item.amountWithBill, info.currency)}</td>
+      <td style="${emailStyles.td}; text-align: right;">${fmtAmount(item.amountWithoutBill, info.currency)}</td>
+      <td style="${emailStyles.td}; text-align: right; font-weight: 700;">${fmtAmount(item.totalAmount ?? item.amount, info.currency)}</td>
     </tr>
   `).join('');
 
-  const buttons = `
-    ${data.approve_link ? `<a href="${data.approve_link}" style="${buttonBase} background: #16a34a;">Approve</a>` : ''}
-    ${data.reject_link ? `<a href="${data.reject_link}" style="${buttonBase} background: #dc2626;">Reject</a>` : ''}
-  `;
-
   const body = `
-    <p>A claim has been submitted and requires review.</p>
-    <div style="padding: 16px; background: #f9fafb; border-left: 4px solid #0ea5e9; margin: 16px 0;">
-      <p style="margin: 0 0 6px 0;">Claim ID: ${data.claim_number}</p>
-      <p style="margin: 0 0 6px 0;">Submitted By: ${data.employee_name}</p>
-      <p style="margin: 0 0 6px 0;">Submission Date: ${fmtDate(data.submission_date)}</p>
-      <p style="margin: 0 0 6px 0;">Project Site: ${data.project_site || ''}</p>
-      <p style="margin: 0 0 6px 0;">Primary Project Code: ${data.primary_project_code || ''}</p>
-      <p style="margin: 0 0 6px 0;">Manager Approval: ${data.manager_status || 'Pending'}</p>
-      <p style="margin: 0;">Admin Approval: ${data.admin_status || 'Pending'}</p>
+    <div style="display: inline-block; padding: 4px 12px; background: ${priorityColor}10; border-radius: 20px; margin-bottom: 16px;">
+      <span style="color: ${priorityColor}; font-size: 12px; font-weight: 600;">🔴 ${priority.toUpperCase()} PRIORITY</span>
     </div>
-    <table style="${tableStyles}">
+    
+    <p>A new claim requires your review and approval.</p>
+    
+    <div style="${emailStyles.card}">
+      <h3 style="margin: 0 0 12px 0; font-size: 16px;">📋 Claim Information</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div><strong>Claim ID:</strong> ${data.claim_number}</div>
+        <div><strong>Submitted By:</strong> ${data.employee_name}</div>
+        <div><strong>Submission Date:</strong> ${fmtDate(data.submission_date)}</div>
+        <div><strong>Project Site:</strong> ${data.project_site || '-'}</div>
+        <div><strong>Project Code:</strong> ${data.primary_project_code || '-'}</div>
+        ${data.deadline_days ? `<div><strong>Review Deadline:</strong> ${data.deadline_days} days</div>` : ''}
+      </div>
+    </div>
+    
+    <h3 style="margin: 24px 0 12px 0; font-size: 16px;">💰 Claim Items</h3>
+    <table style="${emailStyles.table}">
       <thead>
         <tr>
-          <th style="${thStyles}">Category</th>
-          <th style="${thStyles}">Project Code</th>
-          <th style="${thStyles}">Claim Date</th>
-          <th style="${thStyles}">Description</th>
-          <th style="${thStyles}">With Bill</th>
-          <th style="${thStyles}">Without Bill</th>
-          <th style="${thStyles}">Total</th>
+          <th style="${emailStyles.th}">Category</th>
+          <th style="${emailStyles.th}">Project Code</th>
+          <th style="${emailStyles.th}">Claim Date</th>
+          <th style="${emailStyles.th}">Description</th>
+          <th style="${emailStyles.th}">With Bill</th>
+          <th style="${emailStyles.th}">Without Bill</th>
+          <th style="${emailStyles.th}">Total</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
+      <tfoot>
+        <tr style="background: #f8f9fa; font-weight: 700;">
+          <td colspan="6" style="${emailStyles.td}; text-align: right;">Total Amount</td>
+          <td style="${emailStyles.td}; text-align: right;">${fmtAmount(data.total_amount, info.currency)}</td>
+        </tr>
+      </tfoot>
     </table>
-    <p><strong>Total Amount:</strong> ${fmtAmount(data.total_amount, info.currency)}</p>
+    
     ${renderAttachments(data.attachments)}
-    ${buttons ? `<div style="margin-top: 20px;">${buttons}</div>` : ''}
+    
+    <div style="text-align: center; margin: 32px 0 24px 0;">
+      <a href="${data.approve_link}" style="${emailStyles.button} background: #10b981; color: white; margin-right: 12px;">
+        ✓ Approve Claim
+      </a>
+      <a href="${data.reject_link}" style="${emailStyles.button} background: #ef4444; color: white;">
+        ✗ Reject Claim
+      </a>
+    </div>
+    
+    <div style="background: #fff3e0; border-radius: 8px; padding: 12px;">
+      <p style="margin: 0; font-size: 13px;">
+        💡 <strong>Tip:</strong> You can add comments while approving or rejecting the claim.
+      </p>
+    </div>
   `;
 
   return {
-    subject: `Action Required - ${data.claim_number}`,
+    subject: `⚠️ Action Required: Claim ${data.claim_number} - ${data.employee_name}`,
     html: wrapEmail('Claim Approval Required', body, info),
   };
 }
@@ -306,21 +497,43 @@ export function claimApprovedTemplate(data: {
   approved_by: string;
   employee_name?: string;
   status?: string;
+  approval_comments?: string;
+  next_step?: string;
 } & BrandData): { subject: string; html: string } {
   const info = brand(data);
+  
   const body = `
-    <p>Dear ${data.employee_name || 'User'},</p>
-    <p>Your claim has been approved.</p>
-    <div style="padding: 16px; background: #f0fdf4; border-left: 4px solid #16a34a; margin: 16px 0;">
-      <p style="margin: 0 0 6px 0;">Claim ID: ${data.claim_no}</p>
-      <p style="margin: 0 0 6px 0;">Approved By: ${data.approved_by}</p>
-      <p style="margin: 0 0 6px 0;">Status: ${data.status || 'Approved'}</p>
-      <p style="margin: 0;">Amount: ${fmtAmount(data.total, info.currency)}</p>
+    <p>Dear <strong>${data.employee_name || 'User'}</strong>,</p>
+    <p>Great news! Your claim has been approved and is now proceeding to the next stage.</p>
+    
+    <div style="${emailStyles.card} background: ${emailStyles.status.applied}">
+      <h3 style="margin: 0 0 12px 0; font-size: 16px;">✅ Approval Details</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div><strong>Claim ID:</strong> ${data.claim_no}</div>
+        <div><strong>Approved By:</strong> ${data.approved_by}</div>
+        <div><strong>Amount:</strong> ${fmtAmount(data.total, info.currency)}</div>
+        <div><strong>Status:</strong> <span style="display: inline-block; padding: 2px 8px; background: #10b98120; color: #10b981; border-radius: 12px;">${data.status || 'Approved'}</span></div>
+      </div>
+      ${data.approval_comments ? `
+        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
+          <strong>📝 Comments:</strong>
+          <p style="margin: 8px 0 0 0;">${data.approval_comments}</p>
+        </div>
+      ` : ''}
     </div>
+    
+    ${data.next_step ? `
+      <div style="background: #e8f0fe; border-radius: 8px; padding: 12px; margin: 16px 0;">
+        <strong>⏭️ Next Step:</strong>
+        <p style="margin: 8px 0 0 0;">${data.next_step}</p>
+      </div>
+    ` : ''}
+    
+    <p>If you have any questions about this approval, please reach out to your manager or the finance team.</p>
   `;
 
   return {
-    subject: `Claim Approved - ${data.claim_no}`,
+    subject: `✅ Claim Approved - ${data.claim_no}`,
     html: wrapEmail('Claim Approved', body, info),
   };
 }
@@ -331,21 +544,48 @@ export function claimRejectedTemplate(data: {
   rejected_by: string;
   reason: string;
   employee_name?: string;
+  appeal_link?: string;
+  additional_instructions?: string;
 } & BrandData): { subject: string; html: string } {
   const info = brand(data);
+  
   const body = `
-    <p>Dear ${data.employee_name || 'User'},</p>
-    <p>Your claim has been rejected.</p>
-    <div style="padding: 16px; background: #fef2f2; border-left: 4px solid #dc2626; margin: 16px 0;">
-      <p style="margin: 0 0 6px 0;">Claim ID: ${data.claim_no}</p>
-      <p style="margin: 0 0 6px 0;">Rejected By: ${data.rejected_by}</p>
-      <p style="margin: 0 0 6px 0;">Amount: ${fmtAmount(data.total, info.currency)}</p>
-      <p style="margin: 0;">Reason: ${data.reason}</p>
+    <p>Dear <strong>${data.employee_name || 'User'}</strong>,</p>
+    <p>We regret to inform you that your claim has been rejected after review.</p>
+    
+    <div style="${emailStyles.card} background: ${emailStyles.status.rejected}">
+      <h3 style="margin: 0 0 12px 0; font-size: 16px;">❌ Rejection Details</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div><strong>Claim ID:</strong> ${data.claim_no}</div>
+        <div><strong>Rejected By:</strong> ${data.rejected_by}</div>
+        <div><strong>Amount:</strong> ${fmtAmount(data.total, info.currency)}</div>
+      </div>
+      <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
+        <strong>📝 Reason for Rejection:</strong>
+        <p style="margin: 8px 0 0 0; background: white; padding: 12px; border-radius: 8px;">${data.reason}</p>
+      </div>
     </div>
+    
+    ${data.additional_instructions ? `
+      <div style="background: #fff3e0; border-radius: 8px; padding: 12px; margin: 16px 0;">
+        <strong>📌 Important:</strong>
+        <p style="margin: 8px 0 0 0;">${data.additional_instructions}</p>
+      </div>
+    ` : ''}
+    
+    <p>You can review the rejection reason, make necessary corrections, and submit a new claim.</p>
+    
+    ${data.appeal_link ? `
+      <div style="text-align: center; margin: 24px 0;">
+        <a href="${data.appeal_link}" style="${emailStyles.button} background: ${info.secondaryColor}; color: white;">
+          Review & Resubmit →
+        </a>
+      </div>
+    ` : ''}
   `;
 
   return {
-    subject: `Claim Rejected - ${data.claim_no}`,
+    subject: `❌ Claim Rejected - ${data.claim_no}`,
     html: wrapEmail('Claim Rejected', body, info),
   };
 }
@@ -358,22 +598,53 @@ export function passwordResetTemplate(data: {
   employeeName?: string;
   resetLink?: string;
   expiresIn?: string;
+  ip_address?: string;
+  device_info?: string;
 } & BrandData): { subject: string; html: string } {
   const info = brand(data);
+  
   const body = `
-    <p>Dear ${data.employeeName || 'User'},</p>
-    <p>A password reset request was received for your account.</p>
-    ${data.resetLink ? `<p><a href="${data.resetLink}" style="${buttonBase} background: #2563eb;">Reset Password</a></p>` : ''}
-    <p>Reset Link: ${data.resetLink || ''}</p>
-    <p>This link expires in ${data.expiresIn || '1 hour'}.</p>
+    <p>Dear <strong>${data.employeeName || 'User'}</strong>,</p>
+    <p>We received a request to reset your password for the ${info.companyName} Claims Management System.</p>
+    
+    <div style="${emailStyles.card}">
+      <h3 style="margin: 0 0 12px 0; font-size: 16px;">🔐 Password Reset Request</h3>
+      <p style="margin: 0 0 12px 0;">Click the button below to reset your password. This link will expire in <strong>${data.expiresIn || '1 hour'}</strong>.</p>
+      
+      ${data.resetLink ? `
+        <div style="text-align: center; margin: 20px 0;">
+          <a href="${data.resetLink}" style="${emailStyles.button} background: ${info.secondaryColor}; color: white;">
+            Reset Password →
+          </a>
+        </div>
+      ` : ''}
+      
+      <p style="margin: 12px 0 0 0; font-size: 12px; color: #6c757d;">
+        Or copy this link: <a href="${data.resetLink}" style="color: ${info.secondaryColor};">${data.resetLink}</a>
+      </p>
+    </div>
+    
+    ${data.ip_address || data.device_info ? `
+      <div style="background: #f8f9fa; border-radius: 8px; padding: 12px; margin: 16px 0;">
+        <strong>🔒 Security Information:</strong>
+        <p style="margin: 8px 0 0 0; font-size: 12px;">
+          ${data.ip_address ? `IP Address: ${data.ip_address}<br>` : ''}
+          ${data.device_info ? `Device: ${data.device_info}` : ''}
+        </p>
+        <p style="margin: 8px 0 0 0; font-size: 11px; color: #6c757d;">
+          If you did not request this password reset, please ignore this email or contact support immediately.
+        </p>
+      </div>
+    ` : ''}
   `;
 
   return {
-    subject: `Password Reset - ${info.companyName}`,
-    html: wrapEmail('Password Reset', body, info),
+    subject: `🔒 Password Reset Request - ${info.companyName}`,
+    html: wrapEmail('Password Reset Request', body, info),
   };
 }
 
+// Type Definitions
 export type EmailTemplateType =
   | 'welcome_user'
   | 'claim_submitted'
@@ -384,6 +655,7 @@ export type EmailTemplateType =
   | 'user_created'
   | 'password_reset';
 
+// Template Router
 export function getTemplate(type: EmailTemplateType, data: any): { subject: string; html: string } {
   switch (type) {
     case 'welcome_user':
@@ -405,3 +677,11 @@ export function getTemplate(type: EmailTemplateType, data: any): { subject: stri
       throw new Error(`Unknown email template type: ${type}`);
   }
 }
+
+// Export utilities for external use
+export const EmailUtils = {
+  formatCurrency,
+  formatDate: fmtDate,
+  formatAmount: fmtAmount,
+  normalizeCurrency: normalizeCurrencySymbol,
+};
