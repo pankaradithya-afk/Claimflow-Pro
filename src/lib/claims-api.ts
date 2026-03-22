@@ -387,7 +387,7 @@ export async function submitClaim(claim: {
     await createNotification(userEmail, 'Claim Submitted', `Your claim ${claimID} has been submitted successfully.`, 'success', claimID);
   }
 
-  sendEmailNotification('claim_submitted_user', userEmail, { 
+  await sendEmailNotification('claim_submitted_user', userEmail, { 
     claim_id: claimID,
     claim_number: claimNumber, 
     generated_on: new Date().toISOString(),
@@ -405,7 +405,7 @@ export async function submitClaim(claim: {
     attachments: attachmentsForEmail,
   });
   if (status === 'Pending Manager Approval' && managerEmail) {
-    sendEmailNotification('claim_submitted_manager', managerEmail, { 
+    await sendEmailNotification('claim_submitted_manager', managerEmail, { 
       claim_id: claimID,
       claim_number: claimNumber,
       employee_name: userName,
@@ -423,7 +423,7 @@ export async function submitClaim(claim: {
       reject_link: buildClaimActionLink(appUrl, claimID, 'reject', 'manager', managerEmail)
     });
     const superAdminApprovers = await getSuperAdminApproverEmails();
-    queueEmailNotifications(superAdminApprovers.map((email) =>
+    await Promise.all(superAdminApprovers.map((email) =>
       sendEmailNotification('claim_submitted_manager', email, {
         claim_id: claimID,
         claim_number: claimNumber,
@@ -435,14 +435,14 @@ export async function submitClaim(claim: {
         manager_status: 'Pending',
         admin_status: 'Pending',
         total_amount: grandTotal,
-        currency: 'â‚¹',
+        currency: '₹',
         items: expenseItemsForEmail,
         attachments: attachmentsForEmail,
         approve_link: buildClaimActionLink(appUrl, claimID, 'approve', 'admin', email),
         reject_link: buildClaimActionLink(appUrl, claimID, 'reject', 'admin', email),
       })
     ));
-    queueEmailNotifications(superAdminApprovers.map((email) =>
+    await Promise.all(superAdminApprovers.map((email) =>
       sendEmailNotification('claim_submitted_manager', email, {
         claim_id: claimID,
         claim_number: claimNumber,
@@ -454,7 +454,7 @@ export async function submitClaim(claim: {
         manager_status: 'Pending',
         admin_status: 'Pending',
         total_amount: grandTotal,
-        currency: 'â‚¹',
+        currency: '₹',
         items: expenseItemsForEmail,
         attachments: attachmentsForEmail,
         approve_link: buildClaimActionLink(appUrl, claimID, 'approve', 'manager', email),
@@ -463,7 +463,7 @@ export async function submitClaim(claim: {
     ));
   } else if (status === 'Pending Admin Approval') {
     const adminApprovers = await getAdminApproverEmails();
-    queueEmailNotifications(adminApprovers.map((email) =>
+    await Promise.all(adminApprovers.map((email) =>
       sendEmailNotification('claim_submitted_manager', email, {
         claim_id: claimID,
         claim_number: claimNumber,
@@ -557,7 +557,7 @@ export async function approveClaimAsManager(claimId: string, approverEmail: stri
     await Promise.all(adminApprovers.map((email) =>
       createNotification(email, 'Claim Awaiting Admin Approval', `${claimData.submitted_by} claim ${claimId} is pending admin approval.`, 'info', claimId)
     ));
-    sendEmailNotification('claim_approved', claimData.user_email, {
+    await sendEmailNotification('claim_approved', claimData.user_email, {
       claim_no: claimData.claim_number || claimId,
       total: claimData.grand_total || claimData.amount || 0,
       approved_by: approverEmail,
@@ -617,7 +617,7 @@ export async function approveClaimAsAdmin(claimId: string, approverEmail: string
 
   await logAudit('claim_admin_approved', approverEmail, 'claim', claimId, description ? `Amount: ₹${amount} | ${description}` : `Amount: ₹${amount}`);
   await createNotification(c.user_email, 'Claim Fully Approved', `Your claim ${claimId} has been approved by admin. ₹${amount.toLocaleString('en-IN')} settled.`, 'success', claimId);
-  sendEmailNotification('claim_approved', c.user_email, { 
+    await sendEmailNotification('claim_approved', c.user_email, { 
     claim_no: c.claim_number || claimId, 
     total: amount, 
     approved_by: approverEmail,
@@ -658,7 +658,7 @@ export async function rejectClaim(claimId: string, reason: string, rejectorEmail
 
     await logAudit('claim_rejected', rejectorEmail, 'claim', claimId, `Reason: ${reason}`);
     await createNotification((claim as any).user_email, 'Claim Rejected', `Your claim ${displayClaimNo} was rejected. Reason: ${reason}`, 'error', claimId);
-    sendEmailNotification('claim_rejected', (claim as any).user_email, {
+    await sendEmailNotification('claim_rejected', (claim as any).user_email, {
       claim_no: displayClaimNo,
       total: amount,
       rejected_by: rejectorEmail,

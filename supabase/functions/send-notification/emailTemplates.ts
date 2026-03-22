@@ -1,98 +1,10 @@
-// Constants
 const DEFAULT_COMPANY_NAME = 'Irrigation Products International Pvt Ltd';
 const DEFAULT_SUBTITLE = 'Claims Management System';
 const DEFAULT_SUPPORT_EMAIL = 'projects@ipi-india.com';
-const DEFAULT_CURRENCY = '₹';
-const DEFAULT_PRIMARY_COLOR = '#0f3b5c';
-const DEFAULT_SECONDARY_COLOR = '#2c7da0';
-const DEFAULT_ACCENT_COLOR = '#61a5c2';
+const DEFAULT_APP_URL = 'https://claimflow-pro-kappa.vercel.app';
+const DEFAULT_CURRENCY = '&#8377;';
 
-// Modern Email Styles
-const emailStyles = {
-  container: `
-    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-    max-width: 600px;
-    margin: 0 auto;
-    background-color: #ffffff;
-    border-radius: 16px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    overflow: hidden;
-  `,
-  header: `
-    background: linear-gradient(135deg, ${DEFAULT_PRIMARY_COLOR} 0%, ${DEFAULT_SECONDARY_COLOR} 100%);
-    padding: 32px 24px;
-    text-align: center;
-    color: white;
-  `,
-  content: `
-    padding: 32px 24px;
-    background: #ffffff;
-  `,
-  footer: `
-    background: #f8f9fa;
-    padding: 24px;
-    text-align: center;
-    border-top: 1px solid #e9ecef;
-    font-size: 12px;
-    color: #6c757d;
-  `,
-  card: `
-    background: #f8f9fa;
-    border-radius: 12px;
-    padding: 20px;
-    margin: 20px 0;
-    border-left: 4px solid ${DEFAULT_SECONDARY_COLOR};
-  `,
-  button: `
-    display: inline-block;
-    padding: 12px 28px;
-    margin: 8px;
-    border-radius: 8px;
-    font-weight: 600;
-    text-decoration: none;
-    text-align: center;
-    transition: all 0.3s ease;
-  `,
-  table: `
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    margin: 20px 0;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  `,
-  th: `
-    background: #f1f3f5;
-    padding: 12px 16px;
-    font-weight: 600;
-    font-size: 13px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #495057;
-    border-bottom: 2px solid #dee2e6;
-  `,
-  td: `
-    padding: 12px 16px;
-    font-size: 14px;
-    border-bottom: 1px solid #e9ecef;
-    vertical-align: top;
-  `,
-  status: {
-    submitted: 'background: #e3f2fd; color: #0b5e7e; border-left-color: #0b5e7e;',
-    approved: 'background: #e8f5e9; color: #1e7e34; border-left-color: #1e7e34;',
-    rejected: 'background: #ffebee; color: #c62828; border-left-color: #c62828;',
-    pending: 'background: #fff3e0; color: #e65100; border-left-color: #e65100;'
-  }
-};
-
-// Interfaces
-interface Attachment {
-  name?: string;
-  url?: string;
-  size?: string;
-  type?: string;
-}
+type Attachment = string | { name?: string; url?: string };
 
 interface BrandData {
   companyName?: string;
@@ -103,149 +15,193 @@ interface BrandData {
   loginUrl?: string;
   userGuideUrl?: string;
   currency?: string;
-  primaryColor?: string;
-  secondaryColor?: string;
 }
 
-interface ClaimItem {
-  category: string;
-  projectCode?: string;
-  claimDate?: string;
-  description: string;
-  amountWithBill?: number;
-  amountWithoutBill?: number;
-  totalAmount?: number;
-  amount?: number;
-  billNumber?: string;
-  billDate?: string;
-  remarks?: string;
+interface KeyValueItem {
+  label: string;
+  value: string;
+  html?: boolean;
 }
 
-// Helper Functions
-function normalizeCurrencySymbol(currency?: string): string {
-  const value = String(currency || '').trim();
-  if (!value) return '₹';
-  if (value === '₹' || value === 'â‚¹' || value === 'Ã¢â€šÂ¹') return '₹';
-  return value;
+const shellStyles = 'max-width: 920px; margin: 0 auto; padding: 20px; background: #f8fafc;';
+const cardStyles = 'background: #ffffff; border: 1px solid #dbe4ee; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);';
+const heroStyles = 'padding: 24px 28px; background: linear-gradient(135deg, #0f766e 0%, #0284c7 100%); color: #ffffff;';
+const bodyStyles = 'padding: 28px; font-family: Arial, Helvetica, sans-serif; color: #1f2937; line-height: 1.65; font-size: 14px;';
+const footerStyles = 'padding: 18px 28px 26px; border-top: 1px solid #e5e7eb; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #64748b; background: #f8fafc;';
+const buttonSecondary = 'display: inline-block; padding: 12px 18px; margin: 0 12px 12px 0; border-radius: 10px; font-weight: 700; text-decoration: none; color: #0f172a; font-size: 13px; background: #e2e8f0; border: 1px solid #cbd5e1;';
+const buttonDanger = 'display: inline-block; padding: 12px 18px; margin: 0 12px 12px 0; border-radius: 10px; font-weight: 700; text-decoration: none; color: #ffffff; font-size: 13px; background: #dc2626;';
+const buttonSuccess = 'display: inline-block; padding: 12px 18px; margin: 0 12px 12px 0; border-radius: 10px; font-weight: 700; text-decoration: none; color: #ffffff; font-size: 13px; background: #16a34a;';
+const tableStyles = 'width: 100%; border-collapse: collapse; margin: 18px 0 6px; background: #ffffff; border: 1px solid #dbe4ee; table-layout: fixed;';
+const thStyles = 'background: #eff6ff; padding: 10px; border: 1px solid #dbe4ee; text-align: left; font-size: 13px; color: #0f172a; vertical-align: top;';
+const tdStyles = 'padding: 10px; border: 1px solid #dbe4ee; font-size: 13px; vertical-align: top;';
+const softCardStyles = 'padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #0284c7; border-radius: 12px; margin: 16px 0;';
+
+function escapeHtml(value: unknown) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function safeText(value: unknown) {
+  return escapeHtml(value);
+}
+
+function currencySymbol(value?: string) {
+  const raw = String(value ?? '').trim();
+  if (
+    !raw ||
+    raw === '₹' ||
+    raw === '&#8377;' ||
+    raw === '&amp;#8377;' ||
+    raw === 'â‚¹' ||
+    raw === 'INR' ||
+    raw.toUpperCase() === 'RS'
+  ) {
+    return DEFAULT_CURRENCY;
+  }
+  return DEFAULT_CURRENCY;
+}
+
+function absoluteUrl(url?: string, baseUrl = DEFAULT_APP_URL) {
+  const value = String(url || '').trim();
+  if (!value) return '';
+  if (/^https?:\/\//i.test(value) || value.startsWith('data:') || value.startsWith('cid:')) return value;
+  const base = String(baseUrl || DEFAULT_APP_URL).trim().replace(/\/+$/, '');
+  const path = value.startsWith('/') ? value : `/${value}`;
+  return `${base}${path}`;
+}
+
+function fmtAmount(value?: number, currency = DEFAULT_CURRENCY) {
+  const symbol = currencySymbol(currency);
+  const amount = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2, minimumFractionDigits: 2 }).format(Number(value || 0));
+  return `${symbol}${amount}`;
+}
+
+function fmtDate(value?: string) {
+  if (!value) return '';
+  return escapeHtml(new Date(value).toLocaleString('en-IN'));
+}
+
+function safeLink(url?: string) {
+  return escapeHtml((url || '').trim());
 }
 
 function brand(data: BrandData) {
+  const appUrl = data.appUrl || DEFAULT_APP_URL;
   return {
     companyName: data.companyName || DEFAULT_COMPANY_NAME,
     companySubtitle: data.companySubtitle || DEFAULT_SUBTITLE,
     supportEmail: data.supportEmail || DEFAULT_SUPPORT_EMAIL,
-    logoUrl: data.logoUrl || '/api/placeholder/150/60',
-    appUrl: data.appUrl || '',
-    loginUrl: data.loginUrl || '',
-    userGuideUrl: data.userGuideUrl || '',
-    currency: normalizeCurrencySymbol(data.currency || DEFAULT_CURRENCY),
-    primaryColor: data.primaryColor || DEFAULT_PRIMARY_COLOR,
-    secondaryColor: data.secondaryColor || DEFAULT_SECONDARY_COLOR,
+    logoUrl: absoluteUrl(data.logoUrl || '/ipi-logo.jpg', appUrl),
+    appUrl,
+    loginUrl: data.loginUrl || appUrl,
+    userGuideUrl: data.userGuideUrl || appUrl,
+    currency: currencySymbol(data.currency || DEFAULT_CURRENCY),
   };
 }
 
-function fmtAmount(value?: number, currency = DEFAULT_CURRENCY): string {
-  const amount = Number(value || 0);
-  return `${normalizeCurrencySymbol(currency)}${new Intl.NumberFormat('en-IN', {
-    maximumFractionDigits: 2,
-    minimumFractionDigits: 2
-  }).format(amount)}`;
+function sectionTitle(title: string, subtitle?: string) {
+  return `
+    <div style="margin: 0 0 18px 0;">
+      <div style="display: inline-block; padding: 6px 10px; border-radius: 999px; background: #dbeafe; color: #0369a1; font-size: 12px; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase;">System Notification</div>
+      <h2 style="margin: 14px 0 6px; font-size: 22px; color: #0f172a; line-height: 1.3;">${safeText(title)}</h2>
+      ${subtitle ? `<p style="margin: 0; color: #475569; font-size: 14px;">${safeText(subtitle)}</p>` : ''}
+    </div>
+  `;
 }
 
-function fmtDate(value?: string | Date): string {
-  if (!value) return '';
-  const date = new Date(value);
-  if (isNaN(date.getTime())) return '';
-  return date.toLocaleString('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+function infoGrid(items: KeyValueItem[]) {
+  if (!items.length) return '';
+  const columns = items.map((item) => `
+    <div style="flex: 1 1 220px; min-width: 220px; padding: 14px 16px; border: 1px solid #dbe4ee; border-radius: 12px; background: #f8fafc;">
+      <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; font-weight: 700; margin-bottom: 6px;">${safeText(item.label)}</div>
+      <div style="font-size: 14px; color: #0f172a; font-weight: 700; word-break: break-word;">${item.html ? item.value : safeText(item.value)}</div>
+    </div>
+  `).join('');
+  return `<div style="display: flex; flex-wrap: wrap; gap: 12px; margin: 18px 0;">${columns}</div>`;
 }
 
-function formatCurrency(value?: number): string {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(value || 0);
+function statusPill(label: string, tone: 'info' | 'success' | 'warning' | 'danger' = 'info') {
+  const palette = {
+    info: 'background: #dbeafe; color: #075985; border: 1px solid #bfdbfe;',
+    success: 'background: #dcfce7; color: #166534; border: 1px solid #bbf7d0;',
+    warning: 'background: #fef3c7; color: #92400e; border: 1px solid #fde68a;',
+    danger: 'background: #fee2e2; color: #991b1b; border: 1px solid #fecaca;',
+  };
+  return `<span style="display:inline-block; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:700; ${palette[tone]}">${safeText(label)}</span>`;
 }
 
-function renderAttachments(attachments?: Attachment[]): string {
+function renderButtons(buttons: Array<{ href?: string; label: string; tone?: 'success' | 'danger' | 'neutral' }>) {
+  const items = buttons
+    .filter((button) => button.href)
+    .map((button) => {
+      const style = button.tone === 'success' ? buttonSuccess : button.tone === 'danger' ? buttonDanger : buttonSecondary;
+      return `<a href="${button.href}" style="${style}">${safeText(button.label)}</a>`;
+    })
+    .join('');
+  return items ? `<div style="margin: 22px 0 8px;">${items}</div>` : '';
+}
+
+function renderAttachments(attachments?: Attachment[]) {
   if (!attachments || attachments.length === 0) return '';
-  
-  const attachmentsHtml = attachments.map(attachment => {
+  const rows = attachments.map((attachment) => {
     if (typeof attachment === 'string') {
-      return `
-        <div style="display: flex; align-items: center; padding: 8px; background: white; border-radius: 8px; margin-bottom: 8px;">
-          <span style="margin-right: 8px;">📎</span>
-          <span>${attachment}</span>
-        </div>
-      `;
+      return `<li style="margin: 4px 0;">${safeText(attachment)}</li>`;
     }
-    
-    const fileIcon = attachment.type?.startsWith('image/') ? '🖼️' : 
-                     attachment.type === 'application/pdf' ? '📄' : '📎';
-    
-    return `
-      <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; background: white; border-radius: 8px; margin-bottom: 8px; border: 1px solid #e9ecef;">
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <span style="font-size: 20px;">${fileIcon}</span>
-          <div>
-            <div style="font-weight: 500;">${attachment.name || 'Attachment'}</div>
-            ${attachment.size ? `<div style="font-size: 11px; color: #6c757d;">${attachment.size}</div>` : ''}
+    if (attachment.url) {
+      const label = attachment.name || 'Open attachment';
+      return `<li style="margin: 8px 0;"><a href="${safeLink(attachment.url)}" style="color: #0284c7; text-decoration: underline; font-weight: 700;">${safeText(label)}</a><div style="font-size: 12px; color: #64748b;">Open or download this file</div></li>`;
+    }
+    return `<li style="margin: 4px 0;">${safeText(attachment.name || '')}</li>`;
+  }).join('');
+  return `
+    <div style="${softCardStyles}">
+      <p style="margin: 0 0 8px 0; font-weight: 700; color: #0f172a;">Attachments</p>
+      <ul style="margin: 0; padding-left: 18px;">${rows}</ul>
+    </div>
+  `;
+}
+
+function claimTableHeaderCell(style: string, width?: string) {
+  return `${style}${width ? ` width: ${width};` : ''}`;
+}
+
+function wrapEmail(title: string, body: string, data: BrandData) {
+  const info = brand(data);
+  const logo = info.logoUrl ? `<img src="${safeLink(info.logoUrl)}" alt="${safeText(info.companyName)}" style="max-height: 56px; margin-bottom: 10px; display: block;" />` : '';
+  return `
+    <html>
+      <head>
+        <meta charset="UTF-8" />
+      </head>
+      <body style="margin:0; padding:0; background:#f8fafc;">
+        <div style="${shellStyles}">
+          <div style="${cardStyles}">
+            <div style="${heroStyles}">
+              ${logo}
+              <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.9; font-weight: 700;">${safeText(info.companySubtitle)}</div>
+              <div style="font-size: 24px; font-weight: 800; line-height: 1.2; margin-top: 6px;">${safeText(info.companyName)}</div>
+              <div style="font-size: 13px; margin-top: 6px; opacity: 0.95;">Automated system notification from ${safeText(info.companyName)}</div>
+            </div>
+            <div style="${bodyStyles}">
+              ${sectionTitle(title, 'This is an automated message. Please review the details below.')}
+              ${body}
+            </div>
+            <div style="${footerStyles}">
+              <p style="margin: 0 0 8px 0; font-weight: 700; color: #0f172a;">Need help?</p>
+              <p style="margin: 0 0 6px 0;">Support: ${safeText(info.supportEmail)}</p>
+              <p style="margin: 0;">If this email was unexpected, please contact your system administrator.</p>
+            </div>
           </div>
         </div>
-        ${attachment.url ? `
-          <a href="${attachment.url}" style="background: ${DEFAULT_SECONDARY_COLOR}; color: white; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 12px;">
-            Download
-          </a>
-        ` : ''}
-      </div>
-    `;
-  }).join('');
-  
-  return `
-    <div style="margin-top: 24px;">
-      <h3 style="margin: 0 0 12px 0; font-size: 16px;">📎 Attachments (${attachments.length})</h3>
-      ${attachmentsHtml}
-    </div>
+      </body>
+    </html>
   `;
 }
 
-function wrapEmail(title: string, body: string, data: BrandData): string {
-  const info = brand(data);
-  
-  return `
-    <div style="${emailStyles.container}">
-      <div style="${emailStyles.header}">
-        ${info.logoUrl ? `<img src="${info.logoUrl}" alt="${info.companyName}" style="max-height: 50px; margin-bottom: 16px;" />` : ''}
-        <h1 style="margin: 0; font-size: 24px; font-weight: 600;">${info.companyName}</h1>
-        <p style="margin: 8px 0 0 0; opacity: 0.9;">${info.companySubtitle}</p>
-      </div>
-      
-      <div style="${emailStyles.content}">
-        <h2 style="margin: 0 0 20px 0; font-size: 20px; color: ${info.primaryColor};">${title}</h2>
-        ${body}
-      </div>
-      
-      <div style="${emailStyles.footer}">
-        <p style="margin: 0 0 12px 0;"><strong>Need Help?</strong></p>
-        <p style="margin: 0 0 8px 0;">
-          📧 <a href="mailto:${info.supportEmail}" style="color: ${info.secondaryColor}; text-decoration: none;">${info.supportEmail}</a>
-        </p>
-        <p style="margin: 0; font-size: 11px;">
-          This is an automated message from ${info.companyName}. Please do not reply to this email.
-        </p>
-      </div>
-    </div>
-  `;
-}
-
-// Template Functions
 export function welcomeUserTemplate(data: {
   employeeName?: string;
   name?: string;
@@ -254,48 +210,34 @@ export function welcomeUserTemplate(data: {
   tempPassword?: string;
   loginUrl?: string;
   userGuideUrl?: string;
-  additionalInfo?: string;
 } & BrandData): { subject: string; html: string } {
   const info = brand(data);
   const userName = data.employeeName || data.name || 'User';
-  const loginLink = data.loginUrl || info.loginUrl;
-  const guideLink = data.userGuideUrl || info.userGuideUrl;
-
+  const loginLink = safeLink(data.loginUrl || info.loginUrl);
+  const guideLink = safeLink(data.userGuideUrl || info.userGuideUrl);
   const body = `
-    <p>Dear <strong>${userName}</strong>,</p>
-    <p>Welcome to the ${info.companyName} Claims Management System! Your account has been successfully created with the role: <strong>${data.role || 'User'}</strong>.</p>
-    
-    <div style="${emailStyles.card}">
-      <h3 style="margin: 0 0 12px 0; font-size: 16px;">🔐 Your Login Credentials</h3>
-      <p style="margin: 0 0 8px 0;"><strong>Email:</strong> ${data.email || ''}</p>
-      <p style="margin: 0;"><strong>Temporary Password:</strong> <code style="background: white; padding: 4px 8px; border-radius: 4px;">${data.tempPassword || ''}</code></p>
+    <p style="margin-top: 0;">Dear ${safeText(userName)},</p>
+    <p>Your account has been successfully created in the ${safeText(info.companyName)} ${safeText(info.companySubtitle)} with the role ${statusPill(data.role || 'User', 'info')}.</p>
+    ${infoGrid([
+      { label: 'Email', value: data.email || '' },
+      { label: 'Temporary Password', value: data.tempPassword || '' },
+    ])}
+    <div style="${softCardStyles}; border-left-color: #16a34a;">
+      <p style="margin: 0 0 8px 0; font-weight: 700; color: #0f172a;">Next steps</p>
+      <ol style="margin: 0; padding-left: 18px;">
+        <li>Sign in to the claims system.</li>
+        <li>Change your password after first login.</li>
+        <li>Use the user guide if you need help getting started.</li>
+      </ol>
     </div>
-    
-    <div style="background: #fff3e0; border-radius: 8px; padding: 12px; margin: 16px 0;">
-      <p style="margin: 0; font-size: 13px;">⚠️ For security reasons, please change your password after your first login.</p>
-    </div>
-    
-    <h3 style="margin: 24px 0 12px 0; font-size: 16px;">📋 Getting Started</h3>
-    <ol style="margin: 0 0 20px 0; padding-left: 20px;">
-      <li style="margin-bottom: 8px;">Access the system: ${loginLink ? `<a href="${loginLink}" style="color: ${info.secondaryColor};">${loginLink}</a>` : 'Link not provided'}</li>
-      ${guideLink ? `<li style="margin-bottom: 8px;">Download the <a href="${guideLink}" style="color: ${info.secondaryColor};">User Guide</a> for detailed instructions</li>` : ''}
-      <li>Use your credentials above to log in</li>
-    </ol>
-    
-    ${data.additionalInfo ? `<p style="margin-top: 20px;">${data.additionalInfo}</p>` : ''}
-    
-    ${loginLink ? `
-      <div style="text-align: center; margin-top: 28px;">
-        <a href="${loginLink}" style="${emailStyles.button} background: ${info.secondaryColor}; color: white;">
-          Access Claims System →
-        </a>
-      </div>
-    ` : ''}
+    ${renderButtons([
+      { href: loginLink, label: 'Access Claims System', tone: 'success' },
+      { href: guideLink, label: 'View User Guide', tone: 'neutral' },
+    ])}
   `;
-
   return {
-    subject: `🎉 Welcome to ${info.companyName} Claims System`,
-    html: wrapEmail('Welcome Aboard!', body, info),
+    subject: `Welcome to ${info.companyName}`,
+    html: wrapEmail(`Welcome to ${info.companyName}`, body, info),
   };
 }
 
@@ -308,88 +250,76 @@ export function claimSubmittedUserTemplate(data: {
   project_site?: string;
   primary_project_code?: string;
   status?: string;
-  items: ClaimItem[];
+  items: Array<{
+    category: string;
+    projectCode?: string;
+    claimDate?: string;
+    description: string;
+    amountWithBill?: number;
+    amountWithoutBill?: number;
+    totalAmount?: number;
+    amount?: number;
+  }>;
   total_amount: number;
   total_with_bill?: number;
   total_without_bill?: number;
   attachments?: Attachment[];
   employee_name?: string;
-  summary_note?: string;
 } & BrandData): { subject: string; html: string } {
   const info = brand(data);
-  const status = data.status || 'Pending Manager Approval';
-  const statusStyle = status.includes('Approved') ? 'approved' : 
-                      status.includes('Rejected') ? 'rejected' : 'submitted';
-
   const rows = data.items.map((item) => `
     <tr>
-      <td style="${emailStyles.td}"><strong>${item.category}</strong></td>
-      <td style="${emailStyles.td}">${item.projectCode || '-'}</td>
-      <td style="${emailStyles.td}">${item.claimDate ? fmtDate(item.claimDate) : '-'}</td>
-      <td style="${emailStyles.td}">${item.description}</td>
-      <td style="${emailStyles.td}; text-align: right;">${fmtAmount(item.amountWithBill, info.currency)}</td>
-      <td style="${emailStyles.td}; text-align: right;">${fmtAmount(item.amountWithoutBill, info.currency)}</td>
-      <td style="${emailStyles.td}; text-align: right; font-weight: 700;">${fmtAmount(item.totalAmount ?? item.amount, info.currency)}</td>
+      <td style="${tdStyles}; width: 22%; word-break: break-word;">${safeText(item.category)}</td>
+      <td style="${tdStyles}; width: 18%; word-break: break-word;">${safeText(item.projectCode || '')}</td>
+      <td style="${tdStyles}; width: 16%; white-space: nowrap;">${safeText(item.claimDate || '')}</td>
+      <td style="${tdStyles}; width: 24%; word-break: break-word;">${safeText(item.description)}</td>
+      <td style="${tdStyles}; text-align: right;">${fmtAmount(item.amountWithBill, info.currency)}</td>
+      <td style="${tdStyles}; text-align: right;">${fmtAmount(item.amountWithoutBill, info.currency)}</td>
+      <td style="${tdStyles}; text-align: right; font-weight: 700;">${fmtAmount(item.totalAmount ?? item.amount, info.currency)}</td>
     </tr>
   `).join('');
-
   const body = `
-    <p>Dear <strong>${data.employee_name || data.submitted_by || 'User'}</strong>,</p>
-    <p>Your claim has been submitted successfully and is now under review.</p>
-    
-    <div style="${emailStyles.card}">
-      <h3 style="margin: 0 0 12px 0; font-size: 16px;">📋 Claim Details</h3>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-        <div><strong>Claim ID:</strong> ${data.claim_number}</div>
-        <div><strong>Status:</strong> <span style="display: inline-block; padding: 2px 8px; background: #e3f2fd; border-radius: 12px; font-size: 12px;">${status}</span></div>
-        <div><strong>Generated On:</strong> ${fmtDate(data.generated_on)}</div>
-        <div><strong>Submitted By:</strong> ${data.submitted_by || data.employee_name || ''}</div>
-        <div><strong>Project Site:</strong> ${data.project_site || '-'}</div>
-        <div><strong>Project Code:</strong> ${data.primary_project_code || '-'}</div>
-      </div>
+    <p style="margin-top: 0;">Dear ${safeText(data.employee_name || data.submitted_by || 'User')},</p>
+    <p>Your claim has been submitted successfully and is now in the workflow queue.</p>
+    ${infoGrid([
+      { label: 'Claim Number', value: data.claim_number || '' },
+      { label: 'Status', value: data.status || 'Pending Manager Approval' },
+      { label: 'Submitted By', value: data.submitted_by || data.employee_name || '' },
+      { label: 'Submission Date', value: fmtDate(data.submission_date) },
+      { label: 'Project Site', value: data.project_site || '' },
+      { label: 'Primary Project Code', value: data.primary_project_code || '' },
+    ])}
+    <div style="${softCardStyles}">
+      <p style="margin: 0 0 8px 0; font-weight: 700; color: #0f172a;">Claim Summary</p>
+      <div style="font-size: 13px; color: #475569;">${safeText(data.claim_number)} has been recorded with ${data.items.length} line item(s).</div>
     </div>
-    
-    <h3 style="margin: 24px 0 12px 0; font-size: 16px;">💰 Claim Items</h3>
-    <table style="${emailStyles.table}">
+    <table style="${tableStyles}">
       <thead>
         <tr>
-          <th style="${emailStyles.th}">Category</th>
-          <th style="${emailStyles.th}">Project Code</th>
-          <th style="${emailStyles.th}">Claim Date</th>
-          <th style="${emailStyles.th}">Description</th>
-          <th style="${emailStyles.th}">With Bill</th>
-          <th style="${emailStyles.th}">Without Bill</th>
-          <th style="${emailStyles.th}">Total</th>
+          <th style="${claimTableHeaderCell(thStyles, '22%')}">Category</th>
+          <th style="${claimTableHeaderCell(thStyles, '18%')}">Project Code</th>
+          <th style="${claimTableHeaderCell(thStyles, '16%')}">Claim Date</th>
+          <th style="${claimTableHeaderCell(thStyles, '24%')}">Description</th>
+          <th style="${claimTableHeaderCell(thStyles, '6%')}">With Bill</th>
+          <th style="${claimTableHeaderCell(thStyles, '6%')}">Without Bill</th>
+          <th style="${claimTableHeaderCell(thStyles, '8%')}">Total</th>
         </tr>
       </thead>
-      <tbody>${rows}</tbody>
-      <tfoot>
-        <tr style="background: #f8f9fa; font-weight: 700;">
-          <td colspan="4" style="${emailStyles.td}; text-align: right;">Total</td>
-          <td style="${emailStyles.td}; text-align: right;">${fmtAmount(data.total_with_bill, info.currency)}</td>
-          <td style="${emailStyles.td}; text-align: right;">${fmtAmount(data.total_without_bill, info.currency)}</td>
-          <td style="${emailStyles.td}; text-align: right;">${fmtAmount(data.total_amount, info.currency)}</td>
+      <tbody>
+        ${rows}
+        <tr>
+          <td colspan="4" style="${tdStyles}; text-align: right; font-weight: 700;">Total</td>
+          <td style="${tdStyles}; text-align: right; font-weight: 700;">${fmtAmount(data.total_with_bill, info.currency)}</td>
+          <td style="${tdStyles}; text-align: right; font-weight: 700;">${fmtAmount(data.total_without_bill, info.currency)}</td>
+          <td style="${tdStyles}; text-align: right; font-weight: 700;">${fmtAmount(data.total_amount, info.currency)}</td>
         </tr>
-      </tfoot>
+      </tbody>
     </table>
-    
-    ${data.summary_note ? `
-      <div style="background: #e8f0fe; border-radius: 8px; padding: 12px; margin: 16px 0;">
-        <strong>📝 Summary Note:</strong>
-        <p style="margin: 8px 0 0 0;">${data.summary_note}</p>
-      </div>
-    ` : ''}
-    
     ${renderAttachments(data.attachments)}
-    
-    <div style="background: #e8f5e9; border-radius: 8px; padding: 12px; margin-top: 20px;">
-      <p style="margin: 0; font-size: 13px;">✓ You will receive a notification once your claim is reviewed by the manager.</p>
-    </div>
   `;
-
   return {
-    subject: `📝 Claim Submitted - ${data.claim_number}`,
-    html: wrapEmail('Claim Submitted Successfully', body, info),
+    subject: `Claim Submitted - ${data.claim_number}`,
+    html: wrapEmail('Claim Submitted', body, info),
   };
 }
 
@@ -402,91 +332,71 @@ export function claimSubmittedManagerTemplate(data: {
   submission_date?: string;
   manager_status?: string;
   admin_status?: string;
-  items: ClaimItem[];
+  items: Array<{
+    category: string;
+    projectCode?: string;
+    claimDate?: string;
+    description: string;
+    amountWithBill?: number;
+    amountWithoutBill?: number;
+    totalAmount?: number;
+    amount?: number;
+  }>;
   total_amount: number;
   attachments?: Attachment[];
   approve_link: string;
   reject_link: string;
-  deadline_days?: number;
-  priority?: 'high' | 'medium' | 'low';
 } & BrandData): { subject: string; html: string } {
   const info = brand(data);
-  const priority = data.priority || 'medium';
-  const priorityColor = priority === 'high' ? '#dc2626' : priority === 'medium' ? '#f59e0b' : '#10b981';
-
   const rows = data.items.map((item) => `
     <tr>
-      <td style="${emailStyles.td}"><strong>${item.category}</strong></td>
-      <td style="${emailStyles.td}">${item.projectCode || '-'}</td>
-      <td style="${emailStyles.td}">${item.claimDate ? fmtDate(item.claimDate) : '-'}</td>
-      <td style="${emailStyles.td}">${item.description}</td>
-      <td style="${emailStyles.td}; text-align: right;">${fmtAmount(item.amountWithBill, info.currency)}</td>
-      <td style="${emailStyles.td}; text-align: right;">${fmtAmount(item.amountWithoutBill, info.currency)}</td>
-      <td style="${emailStyles.td}; text-align: right; font-weight: 700;">${fmtAmount(item.totalAmount ?? item.amount, info.currency)}</td>
+      <td style="${tdStyles}; width: 22%; word-break: break-word;">${safeText(item.category)}</td>
+      <td style="${tdStyles}; width: 18%; word-break: break-word;">${safeText(item.projectCode || '')}</td>
+      <td style="${tdStyles}; width: 16%; white-space: nowrap;">${safeText(item.claimDate || '')}</td>
+      <td style="${tdStyles}; width: 24%; word-break: break-word;">${safeText(item.description)}</td>
+      <td style="${tdStyles}; text-align: right;">${fmtAmount(item.amountWithBill, info.currency)}</td>
+      <td style="${tdStyles}; text-align: right;">${fmtAmount(item.amountWithoutBill, info.currency)}</td>
+      <td style="${tdStyles}; text-align: right; font-weight: 700;">${fmtAmount(item.totalAmount ?? item.amount, info.currency)}</td>
     </tr>
   `).join('');
-
   const body = `
-    <div style="display: inline-block; padding: 4px 12px; background: ${priorityColor}10; border-radius: 20px; margin-bottom: 16px;">
-      <span style="color: ${priorityColor}; font-size: 12px; font-weight: 600;">🔴 ${priority.toUpperCase()} PRIORITY</span>
+    <p style="margin-top: 0;">A claim has been submitted and requires approval.</p>
+    ${infoGrid([
+      { label: 'Claim Number', value: data.claim_number },
+      { label: 'Submitted By', value: data.employee_name },
+      { label: 'Submission Date', value: fmtDate(data.submission_date) },
+      { label: 'Project Site', value: data.project_site || '' },
+      { label: 'Primary Project Code', value: data.primary_project_code || '' },
+      { label: 'Manager Approval', value: data.manager_status || 'Pending' },
+      { label: 'Admin Approval', value: data.admin_status || 'Pending' },
+    ])}
+    <div style="${softCardStyles}">
+      <p style="margin: 0 0 8px 0; font-weight: 700; color: #0f172a;">Quick actions</p>
+      <p style="margin: 0; color: #475569;">Approve or reject this claim from the links below.</p>
     </div>
-    
-    <p>A new claim requires your review and approval.</p>
-    
-    <div style="${emailStyles.card}">
-      <h3 style="margin: 0 0 12px 0; font-size: 16px;">📋 Claim Information</h3>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-        <div><strong>Claim ID:</strong> ${data.claim_number}</div>
-        <div><strong>Submitted By:</strong> ${data.employee_name}</div>
-        <div><strong>Submission Date:</strong> ${fmtDate(data.submission_date)}</div>
-        <div><strong>Project Site:</strong> ${data.project_site || '-'}</div>
-        <div><strong>Project Code:</strong> ${data.primary_project_code || '-'}</div>
-        ${data.deadline_days ? `<div><strong>Review Deadline:</strong> ${data.deadline_days} days</div>` : ''}
-      </div>
-    </div>
-    
-    <h3 style="margin: 24px 0 12px 0; font-size: 16px;">💰 Claim Items</h3>
-    <table style="${emailStyles.table}">
+    <table style="${tableStyles}">
       <thead>
         <tr>
-          <th style="${emailStyles.th}">Category</th>
-          <th style="${emailStyles.th}">Project Code</th>
-          <th style="${emailStyles.th}">Claim Date</th>
-          <th style="${emailStyles.th}">Description</th>
-          <th style="${emailStyles.th}">With Bill</th>
-          <th style="${emailStyles.th}">Without Bill</th>
-          <th style="${emailStyles.th}">Total</th>
+          <th style="${claimTableHeaderCell(thStyles, '22%')}">Category</th>
+          <th style="${claimTableHeaderCell(thStyles, '18%')}">Project Code</th>
+          <th style="${claimTableHeaderCell(thStyles, '16%')}">Claim Date</th>
+          <th style="${claimTableHeaderCell(thStyles, '24%')}">Description</th>
+          <th style="${claimTableHeaderCell(thStyles, '6%')}">With Bill</th>
+          <th style="${claimTableHeaderCell(thStyles, '6%')}">Without Bill</th>
+          <th style="${claimTableHeaderCell(thStyles, '8%')}">Total</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
-      <tfoot>
-        <tr style="background: #f8f9fa; font-weight: 700;">
-          <td colspan="6" style="${emailStyles.td}; text-align: right;">Total Amount</td>
-          <td style="${emailStyles.td}; text-align: right;">${fmtAmount(data.total_amount, info.currency)}</td>
-        </tr>
-      </tfoot>
     </table>
-    
+    <p style="margin: 16px 0 0;"><strong>Total Amount:</strong> ${fmtAmount(data.total_amount, info.currency)}</p>
     ${renderAttachments(data.attachments)}
-    
-    <div style="text-align: center; margin: 32px 0 24px 0;">
-      <a href="${data.approve_link}" style="${emailStyles.button} background: #10b981; color: white; margin-right: 12px;">
-        ✓ Approve Claim
-      </a>
-      <a href="${data.reject_link}" style="${emailStyles.button} background: #ef4444; color: white;">
-        ✗ Reject Claim
-      </a>
-    </div>
-    
-    <div style="background: #fff3e0; border-radius: 8px; padding: 12px;">
-      <p style="margin: 0; font-size: 13px;">
-        💡 <strong>Tip:</strong> You can add comments while approving or rejecting the claim.
-      </p>
-    </div>
+    ${renderButtons([
+      { href: safeLink(data.approve_link), label: 'Approve', tone: 'success' },
+      { href: safeLink(data.reject_link), label: 'Reject', tone: 'danger' },
+    ])}
   `;
-
   return {
-    subject: `⚠️ Action Required: Claim ${data.claim_number} - ${data.employee_name}`,
+    subject: `Action Required - ${data.claim_number}`,
     html: wrapEmail('Claim Approval Required', body, info),
   };
 }
@@ -497,43 +407,24 @@ export function claimApprovedTemplate(data: {
   approved_by: string;
   employee_name?: string;
   status?: string;
-  approval_comments?: string;
-  next_step?: string;
 } & BrandData): { subject: string; html: string } {
   const info = brand(data);
-  
   const body = `
-    <p>Dear <strong>${data.employee_name || 'User'}</strong>,</p>
-    <p>Great news! Your claim has been approved and is now proceeding to the next stage.</p>
-    
-    <div style="${emailStyles.card} background: ${emailStyles.status.applied}">
-      <h3 style="margin: 0 0 12px 0; font-size: 16px;">✅ Approval Details</h3>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-        <div><strong>Claim ID:</strong> ${data.claim_no}</div>
-        <div><strong>Approved By:</strong> ${data.approved_by}</div>
-        <div><strong>Amount:</strong> ${fmtAmount(data.total, info.currency)}</div>
-        <div><strong>Status:</strong> <span style="display: inline-block; padding: 2px 8px; background: #10b98120; color: #10b981; border-radius: 12px;">${data.status || 'Approved'}</span></div>
-      </div>
-      ${data.approval_comments ? `
-        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
-          <strong>📝 Comments:</strong>
-          <p style="margin: 8px 0 0 0;">${data.approval_comments}</p>
-        </div>
-      ` : ''}
+    <p style="margin-top: 0;">Dear ${safeText(data.employee_name || 'User')},</p>
+    <p>Your claim has been approved and the workflow has been completed.</p>
+    ${infoGrid([
+      { label: 'Claim ID', value: data.claim_no },
+      { label: 'Approved By', value: data.approved_by },
+      { label: 'Claim Amount', value: fmtAmount(data.total, info.currency), html: true },
+    ])}
+    <div style="${softCardStyles}; border-left-color: #16a34a;">
+      <p style="margin: 0 0 6px 0; color: #166534; font-weight: 700;">Approval complete</p>
+      <p style="margin: 0; color: #0f172a;">Status: <strong>${safeText(data.status || 'Approved')}</strong></p>
+      <p style="margin: 6px 0 0; color: #0f172a;">Approved total: <strong>${fmtAmount(data.total, info.currency)}</strong></p>
     </div>
-    
-    ${data.next_step ? `
-      <div style="background: #e8f0fe; border-radius: 8px; padding: 12px; margin: 16px 0;">
-        <strong>⏭️ Next Step:</strong>
-        <p style="margin: 8px 0 0 0;">${data.next_step}</p>
-      </div>
-    ` : ''}
-    
-    <p>If you have any questions about this approval, please reach out to your manager or the finance team.</p>
   `;
-
   return {
-    subject: `✅ Claim Approved - ${data.claim_no}`,
+    subject: `Claim Approved - ${data.claim_no}`,
     html: wrapEmail('Claim Approved', body, info),
   };
 }
@@ -544,48 +435,23 @@ export function claimRejectedTemplate(data: {
   rejected_by: string;
   reason: string;
   employee_name?: string;
-  appeal_link?: string;
-  additional_instructions?: string;
 } & BrandData): { subject: string; html: string } {
   const info = brand(data);
-  
   const body = `
-    <p>Dear <strong>${data.employee_name || 'User'}</strong>,</p>
-    <p>We regret to inform you that your claim has been rejected after review.</p>
-    
-    <div style="${emailStyles.card} background: ${emailStyles.status.rejected}">
-      <h3 style="margin: 0 0 12px 0; font-size: 16px;">❌ Rejection Details</h3>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-        <div><strong>Claim ID:</strong> ${data.claim_no}</div>
-        <div><strong>Rejected By:</strong> ${data.rejected_by}</div>
-        <div><strong>Amount:</strong> ${fmtAmount(data.total, info.currency)}</div>
-      </div>
-      <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
-        <strong>📝 Reason for Rejection:</strong>
-        <p style="margin: 8px 0 0 0; background: white; padding: 12px; border-radius: 8px;">${data.reason}</p>
-      </div>
+    <p style="margin-top: 0;">Dear ${safeText(data.employee_name || 'User')},</p>
+    <p>Your claim has been rejected during review.</p>
+    ${infoGrid([
+      { label: 'Claim ID', value: data.claim_no },
+      { label: 'Rejected By', value: data.rejected_by },
+      { label: 'Claim Amount', value: fmtAmount(data.total, info.currency), html: true },
+    ])}
+    <div style="${softCardStyles}; border-left-color: #dc2626;">
+      <p style="margin: 0 0 6px 0; font-weight: 700; color: #991b1b;">Reason</p>
+      <div style="color: #0f172a;">${safeText(data.reason)}</div>
     </div>
-    
-    ${data.additional_instructions ? `
-      <div style="background: #fff3e0; border-radius: 8px; padding: 12px; margin: 16px 0;">
-        <strong>📌 Important:</strong>
-        <p style="margin: 8px 0 0 0;">${data.additional_instructions}</p>
-      </div>
-    ` : ''}
-    
-    <p>You can review the rejection reason, make necessary corrections, and submit a new claim.</p>
-    
-    ${data.appeal_link ? `
-      <div style="text-align: center; margin: 24px 0;">
-        <a href="${data.appeal_link}" style="${emailStyles.button} background: ${info.secondaryColor}; color: white;">
-          Review & Resubmit →
-        </a>
-      </div>
-    ` : ''}
   `;
-
   return {
-    subject: `❌ Claim Rejected - ${data.claim_no}`,
+    subject: `Claim Rejected - ${data.claim_no}`,
     html: wrapEmail('Claim Rejected', body, info),
   };
 }
@@ -598,53 +464,29 @@ export function passwordResetTemplate(data: {
   employeeName?: string;
   resetLink?: string;
   expiresIn?: string;
-  ip_address?: string;
-  device_info?: string;
 } & BrandData): { subject: string; html: string } {
   const info = brand(data);
-  
   const body = `
-    <p>Dear <strong>${data.employeeName || 'User'}</strong>,</p>
-    <p>We received a request to reset your password for the ${info.companyName} Claims Management System.</p>
-    
-    <div style="${emailStyles.card}">
-      <h3 style="margin: 0 0 12px 0; font-size: 16px;">🔐 Password Reset Request</h3>
-      <p style="margin: 0 0 12px 0;">Click the button below to reset your password. This link will expire in <strong>${data.expiresIn || '1 hour'}</strong>.</p>
-      
-      ${data.resetLink ? `
-        <div style="text-align: center; margin: 20px 0;">
-          <a href="${data.resetLink}" style="${emailStyles.button} background: ${info.secondaryColor}; color: white;">
-            Reset Password →
-          </a>
-        </div>
-      ` : ''}
-      
-      <p style="margin: 12px 0 0 0; font-size: 12px; color: #6c757d;">
-        Or copy this link: <a href="${data.resetLink}" style="color: ${info.secondaryColor};">${data.resetLink}</a>
-      </p>
+    <p style="margin-top: 0;">Dear ${safeText(data.employeeName || 'User')},</p>
+    <p>A password reset request was received for your account.</p>
+    ${infoGrid([
+      { label: 'Reset Link', value: data.resetLink || '' },
+      { label: 'Expires In', value: data.expiresIn || '1 hour' },
+    ])}
+    <div style="${softCardStyles}; border-left-color: #0284c7;">
+      <p style="margin: 0 0 8px 0; font-weight: 700; color: #0f172a;">Security note</p>
+      <p style="margin: 0; color: #475569;">If you did not request this, you can safely ignore this email.</p>
     </div>
-    
-    ${data.ip_address || data.device_info ? `
-      <div style="background: #f8f9fa; border-radius: 8px; padding: 12px; margin: 16px 0;">
-        <strong>🔒 Security Information:</strong>
-        <p style="margin: 8px 0 0 0; font-size: 12px;">
-          ${data.ip_address ? `IP Address: ${data.ip_address}<br>` : ''}
-          ${data.device_info ? `Device: ${data.device_info}` : ''}
-        </p>
-        <p style="margin: 8px 0 0 0; font-size: 11px; color: #6c757d;">
-          If you did not request this password reset, please ignore this email or contact support immediately.
-        </p>
-      </div>
-    ` : ''}
+    ${renderButtons([
+      { href: safeLink(data.resetLink), label: 'Reset Password', tone: 'success' },
+    ])}
   `;
-
   return {
-    subject: `🔒 Password Reset Request - ${info.companyName}`,
-    html: wrapEmail('Password Reset Request', body, info),
+    subject: `Password Reset - ${info.companyName}`,
+    html: wrapEmail('Password Reset', body, info),
   };
 }
 
-// Type Definitions
 export type EmailTemplateType =
   | 'welcome_user'
   | 'claim_submitted'
@@ -655,7 +497,6 @@ export type EmailTemplateType =
   | 'user_created'
   | 'password_reset';
 
-// Template Router
 export function getTemplate(type: EmailTemplateType, data: any): { subject: string; html: string } {
   switch (type) {
     case 'welcome_user':
@@ -677,11 +518,3 @@ export function getTemplate(type: EmailTemplateType, data: any): { subject: stri
       throw new Error(`Unknown email template type: ${type}`);
   }
 }
-
-// Export utilities for external use
-export const EmailUtils = {
-  formatCurrency,
-  formatDate: fmtDate,
-  formatAmount: fmtAmount,
-  normalizeCurrency: normalizeCurrencySymbol,
-};
