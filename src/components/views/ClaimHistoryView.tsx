@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ResponsiveOverlay } from '@/components/ui/responsive-overlay';
 import { History, RefreshCw, Eye, Filter, Download, FileText, Paperclip } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,44 +16,40 @@ import { exportClaimsCSV } from '@/lib/export-utils';
 import { amountToWords } from '@/lib/amount-to-words';
 
 function statusBadge(status: string) {
-  const s = status.toLowerCase();
-  if (s.includes('approved') && !s.includes('pending')) return <Badge className="px-2 py-1 rounded-md text-sm font-medium" style={{ backgroundColor: '#dcfce7', color: '#166534' }}>Approved</Badge>;
-  if (s.includes('reject')) return <Badge className="px-2 py-1 rounded-md text-sm font-medium" style={{ backgroundColor: '#fee2e2', color: '#991b1b' }}>Rejected</Badge>;
-  return <Badge className="px-2 py-1 rounded-md text-sm font-medium" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>{status}</Badge>;
-}
+  const normalized = status.toLowerCase();
 
-function formatDate(d: string) {
-  if (!d) return '';
-  return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-function getPublicUrl(fileId: string) {
-  try {
-    const { data } = supabase.storage.from('claim-attachments').getPublicUrl(fileId);
-    return data?.publicUrl || '';
-  } catch (e) {
-    return '';
+  if (normalized.includes('approved') && !normalized.includes('pending')) {
+    return <Badge className="bg-green-100 px-2 py-1 text-sm font-medium text-green-800 hover:bg-green-100">Approved</Badge>;
   }
+  if (normalized.includes('reject')) {
+    return <Badge className="bg-red-100 px-2 py-1 text-sm font-medium text-red-800 hover:bg-red-100">Rejected</Badge>;
+  }
+  return <Badge className="bg-yellow-100 px-2 py-1 text-sm font-medium text-yellow-800 hover:bg-yellow-100">{status}</Badge>;
+}
+
+function formatDate(date: string) {
+  if (!date) return '';
+  return new Date(date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 function generateClaimPDFHtml(claims: any[], companySettings: any) {
   const logo = companySettings?.logo_url ? `<img src="${companySettings.logo_url}" style="height:50px;margin-bottom:8px" />` : '';
   const companyName = companySettings?.company_name || 'Company';
-  const nonRejected = claims.filter(c => !c.status.toLowerCase().includes('reject'));
-  const rejectedAmount = claims.filter(c => c.status.toLowerCase().includes('reject')).reduce((sum, c) => sum + (c.amount || 0), 0);
-  const totalAmount = nonRejected.reduce((sum, c) => sum + (c.amount || 0), 0);
-  const grandTotal = claims.reduce((sum, c) => sum + (c.amount || 0), 0);
+  const nonRejected = claims.filter((claim) => !claim.status.toLowerCase().includes('reject'));
+  const rejectedAmount = claims.filter((claim) => claim.status.toLowerCase().includes('reject')).reduce((sum, claim) => sum + (claim.amount || 0), 0);
+  const totalAmount = nonRejected.reduce((sum, claim) => sum + (claim.amount || 0), 0);
+  const grandTotal = claims.reduce((sum, claim) => sum + (claim.amount || 0), 0);
 
-  const rows = claims.map(c => `
+  const rows = claims.map((claim) => `
     <tr>
-      <td>${c.claimId}</td>
-      <td>${formatDate(c.date)}</td>
-      <td>${c.submittedBy}</td>
-      <td>${c.site}</td>
-      <td class="text-right">₹${(c.totalWithBill ?? 0).toFixed(2)}</td>
-      <td class="text-right">₹${(c.totalWithoutBill ?? 0).toFixed(2)}</td>
-      <td class="text-right"><strong>₹${(c.amount ?? 0).toFixed(2)}</strong></td>
-      <td>${c.status}</td>
+      <td>${claim.claimId}</td>
+      <td>${formatDate(claim.date)}</td>
+      <td>${claim.submittedBy}</td>
+      <td>${claim.site}</td>
+      <td class="text-right">Rs. ${(claim.totalWithBill ?? 0).toFixed(2)}</td>
+      <td class="text-right">Rs. ${(claim.totalWithoutBill ?? 0).toFixed(2)}</td>
+      <td class="text-right"><strong>Rs. ${(claim.amount ?? 0).toFixed(2)}</strong></td>
+      <td>${claim.status}</td>
     </tr>
   `).join('');
 
@@ -75,7 +71,7 @@ function generateClaimPDFHtml(claims: any[], companySettings: any) {
     ${logo}
     <div>
       <h1>${companyName}</h1>
-      <p style="margin:2px 0;color:#666">Claims Report • Generated: ${new Date().toLocaleDateString('en-IN')}</p>
+      <p style="margin:2px 0;color:#666">Claims Report | Generated: ${new Date().toLocaleDateString('en-IN')}</p>
     </div>
   </div>
   <table>
@@ -83,14 +79,14 @@ function generateClaimPDFHtml(claims: any[], companySettings: any) {
     <tbody>${rows}
       <tr style="font-weight:bold;background:#f5f5f5">
         <td colspan="6" class="text-right">GRAND TOTAL</td>
-        <td class="text-right">₹${grandTotal.toFixed(2)}</td>
+        <td class="text-right">Rs. ${grandTotal.toFixed(2)}</td>
         <td></td>
       </tr>
     </tbody>
   </table>
   <div class="summary">
-    <p><strong>Total Claims:</strong> ${claims.length} | <strong>Total Amount:</strong> ₹${grandTotal.toFixed(2)}</p>
-    ${rejectedAmount > 0 ? `<p class="rejected"><strong>Rejected Amount:</strong> ₹${rejectedAmount.toFixed(2)} | <strong>Net Amount (excl. rejected):</strong> ₹${totalAmount.toFixed(2)}</p>` : ''}
+    <p><strong>Total Claims:</strong> ${claims.length} | <strong>Total Amount:</strong> Rs. ${grandTotal.toFixed(2)}</p>
+    ${rejectedAmount > 0 ? `<p class="rejected"><strong>Rejected Amount:</strong> Rs. ${rejectedAmount.toFixed(2)} | <strong>Net Amount (excl. rejected):</strong> Rs. ${totalAmount.toFixed(2)}</p>` : ''}
     <p><strong>Amount in Words:</strong> ${amountToWords(totalAmount)}</p>
   </div>
 </body></html>`;
@@ -118,13 +114,15 @@ export default function ClaimHistoryView() {
       const data = await getClaimsHistory(user.email, user.role, filters.userEmail || filters.startDate || filters.endDate ? filters : undefined);
       setClaims(data);
       setSelectedIds(new Set());
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
     setLoading(false);
   };
 
   useEffect(() => { loadHistory(); }, [user]);
-  useEffect(() => { 
-    if (canViewUserColumn) getUsersDirectory().then(setUsers); 
+  useEffect(() => {
+    if (canViewUserColumn) getUsersDirectory().then(setUsers);
     getCompanySettings().then(setCompanySettings);
   }, [canViewUserColumn]);
 
@@ -134,7 +132,7 @@ export default function ClaimHistoryView() {
   };
 
   const toggleSelect = (claimId: string) => {
-    setSelectedIds(prev => {
+    setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(claimId)) next.delete(claimId);
       else next.add(claimId);
@@ -146,11 +144,11 @@ export default function ClaimHistoryView() {
     if (selectedIds.size === claims.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(claims.map(c => c.claimId)));
+      setSelectedIds(new Set(claims.map((claim) => claim.claimId)));
     }
   };
 
-  const getSelectedClaims = () => claims.filter(c => selectedIds.has(c.claimId));
+  const getSelectedClaims = () => claims.filter((claim) => selectedIds.has(claim.claimId));
 
   const openReportPreview = (claimsForPdf?: any[], title = 'Claims Report') => {
     const target = claimsForPdf || claims;
@@ -158,27 +156,50 @@ export default function ClaimHistoryView() {
     const html = generateClaimPDFHtml(target, companySettings);
     const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    setReportPreview(prev => {
+    setReportPreview((prev) => {
       if (prev?.url) URL.revokeObjectURL(prev.url);
       return { url, title };
     });
   };
 
-  const selectedTotal = getSelectedClaims().reduce((sum, c) => sum + (c.amount || 0), 0);
+  const selectedTotal = getSelectedClaims().reduce((sum, claim) => sum + (claim.amount || 0), 0);
+
+  const claimFooter = (
+    <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+      <Button variant="outline" onClick={() => setSelectedClaim(null)}>Close</Button>
+    </div>
+  );
+
+  const reportFooter = reportPreview ? (
+    <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+      <Button variant="outline" asChild>
+        <a href={reportPreview.url} target="_blank" rel="noopener noreferrer">Open</a>
+      </Button>
+      <Button
+        variant="outline"
+        onClick={() => {
+          URL.revokeObjectURL(reportPreview.url);
+          setReportPreview(null);
+        }}
+      >
+        Close
+      </Button>
+    </div>
+  ) : undefined;
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4">
+    <div className="animate-in fade-in slide-in-from-bottom-4 space-y-4 duration-500">
       <div className="glass-card p-4">
-        <h3 className="font-semibold mb-3 flex items-center gap-2"><Filter className="h-4 w-4" /> Filters</h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <h3 className="mb-3 flex items-center gap-2 font-semibold"><Filter className="h-4 w-4" /> Filters</h3>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
           {canViewUserColumn && (
             <div>
               <Label className="text-xs">User</Label>
-              <Select value={filters.userEmail} onValueChange={v => setFilters({ ...filters, userEmail: v === 'all' ? '' : v })}>
+              <Select value={filters.userEmail} onValueChange={(value) => setFilters({ ...filters, userEmail: value === 'all' ? '' : value })}>
                 <SelectTrigger><SelectValue placeholder="All users" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Users</SelectItem>
-                  {visibleUsers.map(u => <SelectItem key={u.email} value={u.email}>{u.name}</SelectItem>)}
+                  {visibleUsers.map((visibleUser) => <SelectItem key={visibleUser.email} value={visibleUser.email}>{visibleUser.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -192,22 +213,21 @@ export default function ClaimHistoryView() {
             <Input type="date" value={filters.endDate} onChange={e => setFilters({ ...filters, endDate: e.target.value })} />
           </div>
           <div className="flex items-end gap-2">
-            <Button size="sm" onClick={loadHistory}><Filter className="h-4 w-4 mr-1" /> Apply</Button>
+            <Button size="sm" onClick={loadHistory}><Filter className="mr-1 h-4 w-4" /> Apply</Button>
             <Button size="sm" variant="outline" onClick={() => { setFilters({ userEmail: '', startDate: '', endDate: '' }); loadHistory(); }}>Reset</Button>
           </div>
         </div>
       </div>
 
-      {/* Selection banner */}
       {selectedIds.size > 0 && (
-        <div className="glass-card p-3 flex items-center justify-between border-l-4 border-l-primary animate-in fade-in duration-300">
+        <div className="glass-card flex items-center justify-between border-l-4 border-l-primary p-3 animate-in fade-in duration-300">
           <div className="flex items-center gap-3">
             <Badge variant="secondary" className="text-sm">{selectedIds.size} selected</Badge>
-            <span className="text-sm text-muted-foreground">Total: <strong className="text-foreground">₹{selectedTotal.toFixed(2)}</strong></span>
+            <span className="text-sm text-muted-foreground">Total: <strong className="text-foreground">Rs. {selectedTotal.toFixed(2)}</strong></span>
           </div>
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={() => openReportPreview(getSelectedClaims(), 'Selected Claims Report')}>
-              <FileText className="h-4 w-4 mr-1" /> Download Selected PDF
+              <FileText className="mr-1 h-4 w-4" /> Download Selected PDF
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>Clear</Button>
           </div>
@@ -215,74 +235,70 @@ export default function ClaimHistoryView() {
       )}
 
       <div className="glass-card">
-        <div className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border">
-          <h2 className="font-bold flex items-center gap-2"><History className="h-5 w-5" /> Claim History</h2>
+        <div className="flex flex-col justify-between gap-3 border-b border-border p-3 sm:flex-row sm:items-center sm:p-4">
+          <h2 className="flex items-center gap-2 font-bold"><History className="h-5 w-5" /> Claim History</h2>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={() => openReportPreview()} disabled={claims.length === 0} className="h-9 sm:h-8 flex-1 sm:flex-none">
+            <Button variant="outline" size="sm" onClick={() => openReportPreview()} disabled={claims.length === 0} className="flex-1 sm:flex-none">
               <FileText className="h-4 w-4 sm:mr-1" />
               <span className="hidden sm:inline">PDF Report</span>
             </Button>
-            <Button variant="outline" size="sm" onClick={() => exportClaimsCSV(claims)} disabled={claims.length === 0} className="h-9 sm:h-8 flex-1 sm:flex-none">
+            <Button variant="outline" size="sm" onClick={() => exportClaimsCSV(claims)} disabled={claims.length === 0} className="flex-1 sm:flex-none">
               <Download className="h-4 w-4 sm:mr-1" />
               <span className="hidden sm:inline">Export CSV</span>
             </Button>
-            <Button variant="outline" size="sm" onClick={loadHistory} className="h-9 sm:h-8">
+            <Button variant="outline" size="sm" onClick={loadHistory}>
               <RefreshCw className="h-4 w-4 sm:mr-1" />
               <span className="hidden sm:inline">Refresh</span>
             </Button>
           </div>
         </div>
-        
-        {/* Mobile Card View */}
-        <div className="block md:hidden p-3 space-y-3">
+
+        <div className="block space-y-3 p-3 md:hidden">
           {loading ? (
             Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="border border-border rounded-lg p-4 space-y-3">
+              <div key={i} className="space-y-3 rounded-lg border border-border p-4">
                 <Skeleton className="h-5 w-3/4" />
                 <Skeleton className="h-4 w-1/2" />
                 <Skeleton className="h-8 w-full" />
               </div>
             ))
           ) : claims.length === 0 ? (
-            <div className="text-center p-8 text-muted-foreground">No claims found</div>
-          ) : claims.map(c => (
-            <div key={c.claimId} className={`border border-border rounded-lg p-4 space-y-3 bg-card ${selectedIds.has(c.claimId) ? 'ring-2 ring-primary' : ''}`}>
+            <div className="p-8 text-center text-muted-foreground">No claims found</div>
+          ) : claims.map((claim) => (
+            <div key={claim.claimId} className={`space-y-3 rounded-lg border border-border bg-card p-4 ${selectedIds.has(claim.claimId) ? 'ring-2 ring-primary' : ''}`}>
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <Checkbox
-                      checked={selectedIds.has(c.claimId)}
-                      onCheckedChange={() => toggleSelect(c.claimId)}
+                      checked={selectedIds.has(claim.claimId)}
+                      onCheckedChange={() => toggleSelect(claim.claimId)}
                     />
-                    <p className="font-mono text-xs text-muted-foreground">{c.claimId}</p>
+                    <p className="font-mono text-xs text-muted-foreground">{claim.claimId}</p>
                   </div>
-                  <p className="font-semibold mt-1">{c.site}</p>
-                  <p className="text-sm text-muted-foreground">{formatDate(c.date)}</p>
-                  {canViewUserColumn && <p className="text-xs text-muted-foreground">By: {c.submittedBy}</p>}
+                  <p className="mt-2 text-2xl font-bold text-primary">Rs. {claim.amount.toFixed(2)}</p>
+                  <p className="text-sm text-muted-foreground">{claim.site}</p>
+                  <p className="text-sm text-muted-foreground">{formatDate(claim.date)}</p>
+                  {canViewUserColumn && <p className="text-xs text-muted-foreground">By: {claim.submittedBy}</p>}
                 </div>
-                {statusBadge(c.status)}
+                {statusBadge(claim.status)}
               </div>
-              <div className="grid grid-cols-3 gap-2 text-sm border-t border-border pt-3">
+              <div className="grid grid-cols-2 gap-2 border-t border-border pt-3 text-sm">
                 <div>
                   <p className="text-xs text-muted-foreground">With Bill</p>
-                  <p className="font-medium">₹{(c.totalWithBill ?? 0).toFixed(2)}</p>
+                  <p className="font-medium">Rs. {(claim.totalWithBill ?? 0).toFixed(2)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Without Bill</p>
-                  <p className="font-medium">₹{(c.totalWithoutBill ?? 0).toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Total</p>
-                  <p className="font-bold text-primary">₹{c.amount.toFixed(2)}</p>
+                  <p className="font-medium">Rs. {(claim.totalWithoutBill ?? 0).toFixed(2)}</p>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
-                <Button variant="outline" size="sm" className="h-9 flex-1" onClick={() => viewClaim(c.claimIdInternal)}>
-                  <Eye className="h-4 w-4 mr-1" /> Details
+              <div className="flex flex-wrap gap-2 border-t border-border pt-2">
+                <Button variant="outline" size="sm" className="flex-1" onClick={() => viewClaim(claim.claimIdInternal)}>
+                  <Eye className="mr-1 h-4 w-4" /> Details
                 </Button>
-                {c.fileIds && c.fileIds.length > 0 && (
-                  <Button variant="outline" size="sm" className="h-9 flex-1" onClick={() => viewClaim(c.claimIdInternal)}>
-                    <Paperclip className="h-4 w-4 mr-1 text-primary" /> Attachments ({c.fileIds.length})
+                {claim.fileIds && claim.fileIds.length > 0 && (
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => viewClaim(claim.claimIdInternal)}>
+                    <Paperclip className="mr-1 h-4 w-4 text-primary" /> Attachments ({claim.fileIds.length})
                   </Button>
                 )}
               </div>
@@ -290,57 +306,56 @@ export default function ClaimHistoryView() {
           ))}
         </div>
 
-        {/* Desktop Table View */}
-        <div className="hidden md:block overflow-x-auto">
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-muted/50">
-                <th className="p-3 w-10">
+                <th className="w-10 p-3">
                   <Checkbox
                     checked={claims.length > 0 && selectedIds.size === claims.length}
                     onCheckedChange={toggleSelectAll}
                   />
                 </th>
-                <th className="text-left p-3 font-semibold">ID</th>
-                <th className="text-left p-3 font-semibold">Date</th>
-                {canViewUserColumn && <th className="text-left p-3 font-semibold">User</th>}
-                <th className="text-left p-3 font-semibold">Site</th>
-                <th className="text-right p-3 font-semibold">With Bill</th>
-                <th className="text-right p-3 font-semibold">Without Bill</th>
-                <th className="text-right p-3 font-semibold">Total</th>
-                <th className="text-center p-3 font-semibold">Status</th>
-                <th className="text-center p-3 font-semibold">Actions</th>
+                <th className="p-3 text-left font-semibold">ID</th>
+                <th className="p-3 text-left font-semibold">Date</th>
+                {canViewUserColumn && <th className="p-3 text-left font-semibold">User</th>}
+                <th className="p-3 text-left font-semibold">Site</th>
+                <th className="p-3 text-right font-semibold">With Bill</th>
+                <th className="p-3 text-right font-semibold">Without Bill</th>
+                <th className="p-3 text-right font-semibold">Total</th>
+                <th className="p-3 text-center font-semibold">Status</th>
+                <th className="p-3 text-center font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <tr key={i} className="border-b border-border">
-                    {Array.from({ length: canViewUserColumn ? 10 : 9 }).map((_, j) => (
+                    {Array.from({ length: canViewUserColumn ? 10 : 9 }).map((__, j) => (
                       <td key={j} className="p-3"><Skeleton className="h-4 w-full" /></td>
                     ))}
                   </tr>
                 ))
               ) : claims.length === 0 ? (
-                <tr><td colSpan={canViewUserColumn ? 10 : 9} className="text-center p-8 text-muted-foreground">No claims found</td></tr>
-              ) : claims.map(c => (
-                <tr key={c.claimId} className={`border-b border-border hover:bg-muted/30 transition-colors ${selectedIds.has(c.claimId) ? 'bg-primary/5' : ''}`}>
+                <tr><td colSpan={canViewUserColumn ? 10 : 9} className="p-8 text-center text-muted-foreground">No claims found</td></tr>
+              ) : claims.map((claim) => (
+                <tr key={claim.claimId} className={`border-b border-border transition-colors hover:bg-muted/30 ${selectedIds.has(claim.claimId) ? 'bg-primary/5' : ''}`}>
                   <td className="p-3">
                     <Checkbox
-                      checked={selectedIds.has(c.claimId)}
-                      onCheckedChange={() => toggleSelect(c.claimId)}
+                      checked={selectedIds.has(claim.claimId)}
+                      onCheckedChange={() => toggleSelect(claim.claimId)}
                     />
                   </td>
-                  <td className="p-3 font-mono text-xs">{c.claimId}</td>
-                  <td className="p-3">{formatDate(c.date)}</td>
-                  {canViewUserColumn && <td className="p-3">{c.submittedBy}</td>}
-                  <td className="p-3">{c.site}</td>
-                  <td className="p-3 text-right">₹{(c.totalWithBill ?? 0).toFixed(2)}</td>
-                  <td className="p-3 text-right">₹{(c.totalWithoutBill ?? 0).toFixed(2)}</td>
-                  <td className="p-3 text-right font-medium">₹{c.amount.toFixed(2)}</td>
-                  <td className="p-3 text-center">{statusBadge(c.status)}</td>
-                  <td className="p-3 text-center space-x-1">
-                    <Button variant="ghost" size="sm" onClick={() => viewClaim(c.claimIdInternal)} title="View Details">
+                  <td className="p-3 font-mono text-xs">{claim.claimId}</td>
+                  <td className="p-3">{formatDate(claim.date)}</td>
+                  {canViewUserColumn && <td className="p-3">{claim.submittedBy}</td>}
+                  <td className="p-3">{claim.site}</td>
+                  <td className="p-3 text-right">Rs. {(claim.totalWithBill ?? 0).toFixed(2)}</td>
+                  <td className="p-3 text-right">Rs. {(claim.totalWithoutBill ?? 0).toFixed(2)}</td>
+                  <td className="p-3 text-right text-base font-bold">Rs. {claim.amount.toFixed(2)}</td>
+                  <td className="p-3 text-center">{statusBadge(claim.status)}</td>
+                  <td className="space-x-1 p-3 text-center">
+                    <Button variant="ghost" size="sm" onClick={() => viewClaim(claim.claimIdInternal)} title="View Details">
                       <Eye className="h-4 w-4" />
                     </Button>
                   </td>
@@ -351,135 +366,133 @@ export default function ClaimHistoryView() {
         </div>
       </div>
 
-      <Dialog open={!!selectedClaim} onOpenChange={() => setSelectedClaim(null)}>
-        <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg">Claim Details - {selectedClaim?.claimId}</DialogTitle>
-          </DialogHeader>
-          {selectedClaim && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-sm">
-                <div className="flex justify-between sm:block"><strong>Status:</strong> <span>{selectedClaim.status}</span></div>
-                <div className="flex justify-between sm:block"><strong>Submitted By:</strong> <span>{selectedClaim.submittedBy}</span></div>
-                <div className="flex justify-between sm:block"><strong>Site:</strong> <span>{selectedClaim.site}</span></div>
-                <div className="flex justify-between sm:block"><strong>Date:</strong> <span>{formatDate(selectedClaim.date)}</span></div>
-                <div className="flex justify-between sm:block"><strong>With Bill:</strong> <span>₹{(selectedClaim.totalWithBill ?? 0).toFixed(2)}</span></div>
-                <div className="flex justify-between sm:block"><strong>Without Bill:</strong> <span>₹{(selectedClaim.totalWithoutBill ?? 0).toFixed(2)}</span></div>
-                <div className="flex justify-between sm:block text-primary font-semibold"><strong>Grand Total:</strong> <span>₹{(selectedClaim.amount ?? 0).toFixed(2)}</span></div>
-                {selectedClaim.rejectionReason && <div className="col-span-1 sm:col-span-2 text-destructive"><strong>Rejection Reason:</strong> {selectedClaim.rejectionReason}</div>}
+      <ResponsiveOverlay
+        open={!!selectedClaim}
+        onOpenChange={(open) => {
+          if (!open) setSelectedClaim(null);
+        }}
+        title={`Claim Details - ${selectedClaim?.claimId || ''}`}
+        desktopClassName="max-w-3xl"
+        mobileClassName="max-h-[94svh]"
+        bodyClassName="max-h-[75vh] overflow-y-auto"
+        footer={selectedClaim ? claimFooter : undefined}
+      >
+        {selectedClaim && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+              <div className="rounded-lg border border-border bg-muted/20 p-3">
+                <p className="text-xs text-muted-foreground">Status</p>
+                <div className="mt-2">{statusBadge(selectedClaim.status)}</div>
               </div>
-              
-              {/* Attachments Section */}
-              <div className="border border-border rounded-lg p-3 bg-muted/20">
-                <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                  <Paperclip className="h-4 w-4" /> Attachments ({selectedClaim.fileIds?.length || 0})
-                </h4>
-                {selectedClaim.fileIds && selectedClaim.fileIds.length > 0 ? (
-                  <AttachmentPreview fileIds={selectedClaim.fileIds} claimId={selectedClaim.claimId} />
-                ) : (
-                  <p className="text-sm text-muted-foreground italic">No attachments for this claim</p>
-                )}
+              <div className="rounded-lg border border-border bg-muted/20 p-3">
+                <p className="text-xs text-muted-foreground">Grand Total</p>
+                <p className="mt-2 text-2xl font-bold text-primary">Rs. {(selectedClaim.amount ?? 0).toFixed(2)}</p>
               </div>
-              
-              <h4 className="font-semibold text-sm sm:text-base">Expenses</h4>
-              
-              {/* Mobile Expenses */}
-              <div className="block sm:hidden space-y-2">
-                {selectedClaim.expenses?.map((e: any, i: number) => (
-                  <div key={i} className="border border-border rounded p-3 text-sm space-y-1 bg-card">
-                    <div className="flex justify-between"><span className="text-muted-foreground">Category</span><span className="font-medium">{e.category}</span></div>
-                    {e.projectCode && <div className="flex justify-between"><span className="text-muted-foreground">Code</span><span>{e.projectCode}</span></div>}
-                    {e.claimDate && <div className="flex justify-between"><span className="text-muted-foreground">Date</span><span>{formatDate(e.claimDate)}</span></div>}
-                    {e.description && <div className="flex justify-between"><span className="text-muted-foreground">Desc</span><span className="text-right max-w-[60%]">{e.description}</span></div>}
-                    <div className="flex justify-between border-t border-border pt-1 mt-1">
-                      <span className="text-muted-foreground">Total</span>
-                      <span className="font-bold text-primary">₹{(e.amount ?? 0).toFixed(2)}</span>
-                    </div>
-                  </div>
-                ))}
-                <div className="bg-primary/10 rounded p-3 text-sm">
-                  <div className="flex justify-between font-bold">
-                    <span>Grand Total</span>
-                    <span className="text-primary">₹{(selectedClaim.amount ?? 0).toFixed(2)}</span>
+              <div className="rounded-lg border border-border bg-muted/20 p-3">
+                <p className="text-xs text-muted-foreground">Submitted By</p>
+                <p className="mt-1 font-medium">{selectedClaim.submittedBy}</p>
+              </div>
+              <div className="rounded-lg border border-border bg-muted/20 p-3">
+                <p className="text-xs text-muted-foreground">Site</p>
+                <p className="mt-1 font-medium">{selectedClaim.site}</p>
+              </div>
+              <div className="rounded-lg border border-border bg-muted/20 p-3">
+                <p className="text-xs text-muted-foreground">Date</p>
+                <p className="mt-1 font-medium">{formatDate(selectedClaim.date)}</p>
+              </div>
+              <div className="rounded-lg border border-border bg-muted/20 p-3">
+                <p className="text-xs text-muted-foreground">With Bill / Without Bill</p>
+                <p className="mt-1 font-medium">Rs. {(selectedClaim.totalWithBill ?? 0).toFixed(2)} / Rs. {(selectedClaim.totalWithoutBill ?? 0).toFixed(2)}</p>
+              </div>
+              {selectedClaim.rejectionReason && (
+                <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-destructive sm:col-span-2">
+                  <strong>Rejection Reason:</strong> {selectedClaim.rejectionReason}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-lg border border-border bg-muted/20 p-3">
+              <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                <Paperclip className="h-4 w-4" /> Attachments ({selectedClaim.fileIds?.length || 0})
+              </h4>
+              {selectedClaim.fileIds && selectedClaim.fileIds.length > 0 ? (
+                <AttachmentPreview fileIds={selectedClaim.fileIds} claimId={selectedClaim.claimId} />
+              ) : (
+                <p className="text-sm italic text-muted-foreground">No attachments for this claim</p>
+              )}
+            </div>
+
+            <h4 className="text-sm font-semibold sm:text-base">Expenses</h4>
+
+            <div className="block space-y-2 sm:hidden">
+              {selectedClaim.expenses?.map((expense: any, i: number) => (
+                <div key={i} className="space-y-1 rounded border border-border bg-card p-3 text-sm">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Category</span><span className="font-medium">{expense.category}</span></div>
+                  {expense.projectCode && <div className="flex justify-between"><span className="text-muted-foreground">Code</span><span>{expense.projectCode}</span></div>}
+                  {expense.claimDate && <div className="flex justify-between"><span className="text-muted-foreground">Date</span><span>{formatDate(expense.claimDate)}</span></div>}
+                  {expense.description && <div className="flex justify-between gap-4"><span className="text-muted-foreground">Desc</span><span className="max-w-[60%] text-right">{expense.description}</span></div>}
+                  <div className="mt-1 flex justify-between border-t border-border pt-1">
+                    <span className="text-muted-foreground">Total</span>
+                    <span className="font-bold text-primary">Rs. {(expense.amount ?? 0).toFixed(2)}</span>
                   </div>
                 </div>
-              </div>
-              
-              {/* Desktop Expenses Table */}
-              <div className="hidden sm:block overflow-x-auto">
-                <table className="w-full text-sm border">
-                  <thead>
-                    <tr className="bg-muted">
-                      <th className="p-2 text-left border">Category</th>
-                      <th className="p-2 text-left border">Code</th>
-                      <th className="p-2 text-left border">Date</th>
-                      <th className="p-2 text-left border">Description</th>
-                      <th className="p-2 text-right border">With Bill (₹)</th>
-                      <th className="p-2 text-right border">Without Bill (₹)</th>
-                      <th className="p-2 text-right border">Total (₹)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedClaim.expenses?.map((e: any, i: number) => (
-                      <tr key={i} className="border-t">
-                        <td className="p-2 border">{e.category}</td>
-                        <td className="p-2 border">{e.projectCode}</td>
-                        <td className="p-2 border">{e.claimDate ? formatDate(e.claimDate) : ''}</td>
-                        <td className="p-2 border">{e.description}</td>
-                        <td className="p-2 text-right border">₹{(e.amountWithBill ?? 0).toFixed(2)}</td>
-                        <td className="p-2 text-right border">₹{(e.amountWithoutBill ?? 0).toFixed(2)}</td>
-                        <td className="p-2 text-right border font-medium">₹{(e.amount ?? 0).toFixed(2)}</td>
-                      </tr>
-                    ))}
-                    <tr className="font-bold bg-muted/50">
-                      <td colSpan={4} className="p-2 border text-right">TOTAL</td>
-                      <td className="p-2 text-right border">₹{(selectedClaim.totalWithBill ?? 0).toFixed(2)}</td>
-                      <td className="p-2 text-right border">₹{(selectedClaim.totalWithoutBill ?? 0).toFixed(2)}</td>
-                      <td className="p-2 text-right border">₹{(selectedClaim.amount ?? 0).toFixed(2)}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-              <div className="flex justify-end">
-                <Button variant="outline" onClick={() => setSelectedClaim(null)}>Close</Button>
-              </div>
+              ))}
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
 
-      <Dialog
+            <div className="hidden overflow-x-auto sm:block">
+              <table className="w-full border text-sm">
+                <thead>
+                  <tr className="bg-muted">
+                    <th className="border p-2 text-left">Category</th>
+                    <th className="border p-2 text-left">Code</th>
+                    <th className="border p-2 text-left">Date</th>
+                    <th className="border p-2 text-left">Description</th>
+                    <th className="border p-2 text-right">With Bill (Rs.)</th>
+                    <th className="border p-2 text-right">Without Bill (Rs.)</th>
+                    <th className="border p-2 text-right">Total (Rs.)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedClaim.expenses?.map((expense: any, i: number) => (
+                    <tr key={i} className="border-t">
+                      <td className="border p-2">{expense.category}</td>
+                      <td className="border p-2">{expense.projectCode}</td>
+                      <td className="border p-2">{expense.claimDate ? formatDate(expense.claimDate) : ''}</td>
+                      <td className="border p-2">{expense.description}</td>
+                      <td className="border p-2 text-right">Rs. {(expense.amountWithBill ?? 0).toFixed(2)}</td>
+                      <td className="border p-2 text-right">Rs. {(expense.amountWithoutBill ?? 0).toFixed(2)}</td>
+                      <td className="border p-2 text-right font-medium">Rs. {(expense.amount ?? 0).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                  <tr className="bg-muted/50 font-bold">
+                    <td colSpan={4} className="border p-2 text-right">TOTAL</td>
+                    <td className="border p-2 text-right">Rs. {(selectedClaim.totalWithBill ?? 0).toFixed(2)}</td>
+                    <td className="border p-2 text-right">Rs. {(selectedClaim.totalWithoutBill ?? 0).toFixed(2)}</td>
+                    <td className="border p-2 text-right">Rs. {(selectedClaim.amount ?? 0).toFixed(2)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </ResponsiveOverlay>
+
+      <ResponsiveOverlay
         open={!!reportPreview}
         onOpenChange={(open) => {
           if (!open && reportPreview?.url) URL.revokeObjectURL(reportPreview.url);
           if (!open) setReportPreview(null);
         }}
+        title={reportPreview?.title || 'Claims Report'}
+        desktopClassName="max-w-5xl"
+        mobileClassName="max-h-[94svh]"
+        bodyClassName="space-y-4"
+        footer={reportFooter}
       >
-        <DialogContent className="max-w-[95vw] sm:max-w-5xl max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle>{reportPreview?.title || 'Claims Report'}</DialogTitle>
-          </DialogHeader>
-          {reportPreview && (
-            <div className="space-y-4">
-              <iframe src={reportPreview.url} className="w-full h-[65vh] rounded border" title={reportPreview.title} />
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" asChild>
-                  <a href={reportPreview.url} target="_blank" rel="noopener noreferrer">Open</a>
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    URL.revokeObjectURL(reportPreview.url);
-                    setReportPreview(null);
-                  }}
-                >
-                  Close
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+        {reportPreview && (
+          <iframe src={reportPreview.url} className="h-[65vh] w-full rounded border" title={reportPreview.title} />
+        )}
+      </ResponsiveOverlay>
     </div>
   );
 }

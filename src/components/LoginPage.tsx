@@ -24,17 +24,15 @@ export default function LoginPage() {
   const [forgotError, setForgotError] = useState('');
   const [forgotSuccess, setForgotSuccess] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberCredentials, setRememberCredentials] = useState(false);
+  const [rememberEmail, setRememberEmail] = useState(false);
 
   useEffect(() => {
     getCompanySettings().then(s => { if (s) setCompanySettings(s); }).catch(() => {});
     checkAdminExists().then(setAdminExists).catch(() => setAdminExists(true));
     const savedEmail = localStorage.getItem('claimsSavedEmail');
-    const savedPassword = localStorage.getItem('claimsSavedPassword');
-    if (savedEmail) setEmail(savedEmail);
-    if (savedPassword) {
-      setPassword(savedPassword);
-      setRememberCredentials(true);
+    if (savedEmail) {
+      setEmail(savedEmail);
+      setRememberEmail(true);
     }
   }, []);
 
@@ -60,12 +58,10 @@ export default function LoginPage() {
         } else {
           setError(result.message || 'Login failed. Please try again.');
         }
-      } else if (rememberCredentials) {
+      } else if (rememberEmail) {
         localStorage.setItem('claimsSavedEmail', email.trim());
-        localStorage.setItem('claimsSavedPassword', password);
       } else {
         localStorage.removeItem('claimsSavedEmail');
-        localStorage.removeItem('claimsSavedPassword');
       }
     } catch {
       setError('Network error. Please check your connection and try again.');
@@ -178,11 +174,11 @@ export default function LoginPage() {
               <div className="flex items-center gap-2">
                 <Checkbox
                   id="remember-credentials"
-                  checked={rememberCredentials}
-                  onCheckedChange={(checked) => setRememberCredentials(Boolean(checked))}
+                  checked={rememberEmail}
+                  onCheckedChange={(checked) => setRememberEmail(Boolean(checked))}
                 />
                 <Label htmlFor="remember-credentials" className="text-sm font-normal">
-                  Remember login details
+                  Remember email address
                 </Label>
               </div>
 

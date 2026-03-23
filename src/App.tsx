@@ -6,6 +6,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { lazy, Suspense } from "react";
 import type { ReactNode } from "react";
+import BrandingSync from "@/components/BrandingSync";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import EmailTest from "./pages/EmailTest";
@@ -43,6 +44,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
+        <BrandingSync />
         <Toaster />
         <Sonner />
         <BrowserRouter>

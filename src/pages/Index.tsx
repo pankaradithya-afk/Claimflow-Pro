@@ -28,14 +28,14 @@ export default function Index() {
   if (!user) return <LoginPage />;
 
   return (
-    <div className="min-h-screen bg-background pt-[env(safe-area-inset-top,0px)]">
+    <div className="min-h-screen bg-background">
       <div className="hidden md:block">
         <AppSidebar activeView={activeView} onNavigate={handleNavigate} />
       </div>
 
       <div className="md:ml-[70px] transition-all duration-300">
         <AppHeader />
-        <main className="px-3 sm:px-4 pb-24 md:pb-8">
+        <main className="main-content px-3 sm:px-4 md:pb-8">
           <Outlet />
         </main>
       </div>

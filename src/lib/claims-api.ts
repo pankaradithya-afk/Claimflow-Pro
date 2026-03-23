@@ -1,6 +1,24 @@
 import { supabase } from '@/integrations/supabase/client';
 import { hashPassword } from '@/lib/auth';
 
+export interface ProjectCodeOption {
+  code: string;
+  label: string;
+  project: string;
+  allowsAllCategories: boolean;
+  expenseCategories: string[];
+}
+
+function normalizeCategoryList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+
+  return [...new Set(
+    value
+      .map((entry) => String(entry || '').trim())
+      .filter(Boolean)
+  )].sort((a, b) => a.localeCompare(b));
+}
+
 // ============= ADMIN CHECK =============
 export async function checkAdminExists(): Promise<boolean> {
   const { count, error } = await supabase
@@ -131,7 +149,9 @@ async function getSuperAdminApproverEmails() {
 // ============= DROPDOWN DATA =============
 export async function getDropdownOptions() {
   const { data, error } = await supabase.from('app_lists').select('*').eq('active', true);
-  if (error || !data) return { projects: [], categories: [], projectCodes: [], byProject: {} as Record<string, string[]> };
+  if (error || !data) {
+    return { projects: [], categories: [], projectCodes: [] as ProjectCodeOption[], byProject: {} as Record<string, ProjectCodeOption[]> };
+  }
 
   const categories = [...new Set(
     (data as any[]).filter(r => String(r.type || '').toLowerCase() === 'category')
@@ -145,14 +165,24 @@ export async function getDropdownOptions() {
 
   const projectCodes = (data as any[])
     .filter(r => String(r.type || '').toLowerCase() === 'projectcode')
-    .map(r => ({ code: String(r.project_code || '').trim(), project: String(r.project || '').trim() }))
-    .filter(c => c.code);
+    .map((r) => ({
+      code: String(r.project_code || '').trim(),
+      label: String(r.value || '').trim(),
+      project: String(r.project || '').trim(),
+      allowsAllCategories: Boolean(r.allows_all_categories ?? true),
+      expenseCategories: normalizeCategoryList(r.expense_categories),
+    }))
+    .filter((c) => c.code);
 
-  const byProject: Record<string, string[]> = {};
+  const byProject: Record<string, ProjectCodeOption[]> = {};
   projectCodes.forEach(pc => {
     const key = pc.project || '';
     if (!byProject[key]) byProject[key] = [];
-    byProject[key].push(pc.code);
+    byProject[key].push(pc);
+  });
+
+  Object.values(byProject).forEach((items) => {
+    items.sort((a, b) => a.code.localeCompare(b.code) || a.label.localeCompare(b.label));
   });
 
   return { projects, categories, projectCodes, byProject };
@@ -961,7 +991,14 @@ export async function getAppLists() {
   return (data || []) as any[];
 }
 
-export async function addAppListItem(item: { type: string; value: string; project_code?: string; project?: string }) {
+export async function addAppListItem(item: {
+  type: string;
+  value: string;
+  project_code?: string;
+  project?: string;
+  allows_all_categories?: boolean;
+  expense_categories?: string[];
+}) {
   const { error } = await supabase.from('app_lists').insert({ ...item, active: true });
   if (error) throw error;
 }
