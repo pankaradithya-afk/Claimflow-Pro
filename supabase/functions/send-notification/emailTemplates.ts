@@ -23,18 +23,18 @@ interface KeyValueItem {
   html?: boolean;
 }
 
-const shellStyles = 'max-width: 860px; margin: 0 auto; padding: 12px; background: #f8fafc;';
-const cardStyles = 'background: #ffffff; border: 1px solid #dbe4ee; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);';
-const heroStyles = 'padding: 18px 22px; background: linear-gradient(135deg, #0f766e 0%, #0284c7 100%); color: #ffffff;';
-const bodyStyles = 'padding: 18px 22px 20px; font-family: Arial, Helvetica, sans-serif; color: #1f2937; line-height: 1.45; font-size: 13px;';
-const footerStyles = 'padding: 14px 22px 18px; border-top: 1px solid #e5e7eb; font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #64748b; background: #f8fafc;';
-const buttonSecondary = 'display: inline-block; padding: 9px 14px; margin: 0 8px 8px 0; border-radius: 8px; font-weight: 700; text-decoration: none; color: #0f172a; font-size: 12px; background: #e2e8f0; border: 1px solid #cbd5e1;';
-const buttonDanger = 'display: inline-block; padding: 9px 14px; margin: 0 8px 8px 0; border-radius: 8px; font-weight: 700; text-decoration: none; color: #ffffff; font-size: 12px; background: #dc2626;';
-const buttonSuccess = 'display: inline-block; padding: 9px 14px; margin: 0 8px 8px 0; border-radius: 8px; font-weight: 700; text-decoration: none; color: #ffffff; font-size: 12px; background: #16a34a;';
-const tableStyles = 'width: 100%; border-collapse: collapse; margin: 12px 0 4px; background: #ffffff; border: 1px solid #dbe4ee; table-layout: fixed;';
-const thStyles = 'background: #eff6ff; padding: 7px 8px; border: 1px solid #dbe4ee; text-align: left; font-size: 11px; color: #0f172a; vertical-align: top;';
-const tdStyles = 'padding: 7px 8px; border: 1px solid #dbe4ee; font-size: 12px; line-height: 1.35; vertical-align: top;';
-const softCardStyles = 'padding: 10px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-left: 3px solid #0284c7; border-radius: 10px; margin: 10px 0;';
+const shellStyles = 'max-width: 600px; margin: 0 auto; padding: 20px 10px; background: #f1f5f9;';
+const cardStyles = 'background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);';
+const heroStyles = 'padding: 32px 24px; background: linear-gradient(135deg, #0f172a 0%, #0ea5e9 100%); color: #ffffff; text-align: center;';
+const bodyStyles = 'padding: 32px 28px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #334155; line-height: 1.6; font-size: 14px;';
+const footerStyles = 'padding: 24px 28px; border-top: 1px solid #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 12px; color: #64748b; background: #f8fafc; text-align: center;';
+const buttonSecondary = 'display: inline-block; padding: 12px 24px; margin: 0 8px 8px 0; border-radius: 8px; font-weight: 700; text-decoration: none; color: #334155; font-size: 14px; background: #f1f5f9; border: 1px solid #cbd5e1;';
+const buttonDanger = 'display: inline-block; padding: 12px 24px; margin: 0 8px 8px 0; border-radius: 8px; font-weight: 700; text-decoration: none; color: #ffffff; font-size: 14px; background: #ef4444;';
+const buttonSuccess = 'display: inline-block; padding: 12px 24px; margin: 0 8px 8px 0; border-radius: 8px; font-weight: 700; text-decoration: none; color: #ffffff; font-size: 14px; background: #0ea5e9;';
+const tableStyles = 'width: 100%; border-collapse: collapse; margin: 24px 0 8px; background: #ffffff; border: 1px solid #e2e8f0; table-layout: fixed;';
+const thStyles = 'background: #f8fafc; padding: 12px 14px; border: 1px solid #e2e8f0; text-align: left; font-size: 12px; color: #475569; vertical-align: top; font-weight: 700;';
+const tdStyles = 'padding: 14px; border: 1px solid #e2e8f0; font-size: 13px; line-height: 1.5; vertical-align: top; color: #1e293b;';
+const softCardStyles = 'padding: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #0ea5e9; border-radius: 12px; margin: 20px 0;';
 
 function escapeHtml(value: unknown) {
   return String(value ?? '')
@@ -105,23 +105,42 @@ function brand(data: BrandData) {
 
 function sectionTitle(title: string, subtitle?: string) {
   return `
-    <div style="margin: 0 0 12px 0;">
-      <div style="display: inline-block; padding: 4px 8px; border-radius: 999px; background: #dbeafe; color: #0369a1; font-size: 10px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;">System Notification</div>
-      <h2 style="margin: 10px 0 4px; font-size: 20px; color: #0f172a; line-height: 1.25;">${safeText(title)}</h2>
-      ${subtitle ? `<p style="margin: 0; color: #475569; font-size: 12px;">${safeText(subtitle)}</p>` : ''}
+    <div style="margin: 0 0 24px 0; text-align: center;">
+      <div style="display: inline-block; padding: 6px 12px; border-radius: 999px; background: #e0f2fe; color: #0369a1; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;">System Notification</div>
+      <h2 style="margin: 14px 0 8px; font-size: 24px; color: #0f172a; line-height: 1.2; letter-spacing: -0.02em;">${safeText(title)}</h2>
+      ${subtitle ? `<p style="margin: 0; color: #64748b; font-size: 14px;">${safeText(subtitle)}</p>` : ''}
     </div>
   `;
 }
 
 function infoGrid(items: KeyValueItem[]) {
   if (!items.length) return '';
-  const columns = items.map((item) => `
-    <div style="flex: 1 1 170px; min-width: 170px; padding: 10px 12px; border: 1px solid #dbe4ee; border-radius: 10px; background: #f8fafc;">
-      <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; font-weight: 700; margin-bottom: 4px;">${safeText(item.label)}</div>
-      <div style="font-size: 12px; color: #0f172a; font-weight: 700; word-break: break-word; line-height: 1.35;">${item.html ? item.value : safeText(item.value)}</div>
+  const rows: string[] = [];
+  for (let i = 0; i < items.length; i += 2) {
+    const item1 = items[i];
+    const item2 = items[i + 1];
+    rows.push(`
+      <tr>
+        <td style="padding: 16px; width: 50%; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; vertical-align: top;">
+          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; font-weight: 700; margin-bottom: 4px;">${safeText(item1.label)}</div>
+          <div style="font-size: 14px; color: #0f172a; font-weight: 700; line-height: 1.45; word-break: break-word;">${item1.html ? item1.value : safeText(item1.value)}</div>
+        </td>
+        <td style="padding: 16px; width: 50%; border-bottom: 1px solid #e2e8f0; vertical-align: top;">
+          ${item2 ? `
+            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; font-weight: 700; margin-bottom: 4px;">${safeText(item2.label)}</div>
+            <div style="font-size: 14px; color: #0f172a; font-weight: 700; line-height: 1.45; word-break: break-word;">${item2.html ? item2.value : safeText(item2.value)}</div>
+          ` : '&nbsp;'}
+        </td>
+      </tr>
+    `);
+  }
+  return `
+    <div style="margin: 24px 0; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #ffffff;">
+      <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+        ${rows.join('')}
+      </table>
     </div>
-  `).join('');
-  return `<div style="display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0;">${columns}</div>`;
+  `;
 }
 
 function statusPill(label: string, tone: 'info' | 'success' | 'warning' | 'danger' = 'info') {
@@ -142,7 +161,7 @@ function renderButtons(buttons: Array<{ href?: string; label: string; tone?: 'su
       return `<a href="${button.href}" style="${style}">${safeText(button.label)}</a>`;
     })
     .join('');
-  return items ? `<div style="margin: 14px 0 4px;">${items}</div>` : '';
+  return items ? `<div style="margin: 32px 0 12px; text-align: center;">${items}</div>` : '';
 }
 
 function renderAttachments(attachments?: Attachment[]) {
@@ -153,7 +172,7 @@ function renderAttachments(attachments?: Attachment[]) {
     }
     if (attachment.url) {
       const label = attachment.name || 'Open attachment';
-      return `<li style="margin: 6px 0;"><a href="${safeLink(attachment.url)}" style="color: #0284c7; text-decoration: underline; font-weight: 700;">${safeText(label)}</a><div style="font-size: 11px; color: #64748b;">Open or download this file</div></li>`;
+      return `<li style="margin: 10px 0;"><a href="${safeLink(attachment.url)}" style="color: #0ea5e9; text-decoration: none; font-weight: 700;">${safeText(label)}</a><div style="font-size: 12px; color: #64748b; margin-top: 4px;">Open or download this file</div></li>`;
     }
     return `<li style="margin: 4px 0;">${safeText(attachment.name || '')}</li>`;
   }).join('');
@@ -171,28 +190,30 @@ function claimTableHeaderCell(style: string, width?: string) {
 
 function wrapEmail(title: string, body: string, data: BrandData) {
   const info = brand(data);
-  const logo = info.logoUrl ? `<img src="${safeLink(info.logoUrl)}" alt="${safeText(info.companyName)}" style="max-height: 56px; margin-bottom: 10px; display: block;" />` : '';
+  const logo = info.logoUrl ? `<img src="${safeLink(info.logoUrl)}" alt="${safeText(info.companyName)}" style="max-height: 48px; margin: 0 auto 16px; display: block; border-radius: 8px;" />` : '';
   return `
+    <!DOCTYPE html>
     <html>
       <head>
         <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </head>
-      <body style="margin:0; padding:0; background:#f8fafc;">
+      <body style="margin:0; padding:0; background:#f1f5f9; -webkit-font-smoothing: antialiased;">
         <div style="${shellStyles}">
           <div style="${cardStyles}">
             <div style="${heroStyles}">
               ${logo}
-              <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.9; font-weight: 700;">${safeText(info.companySubtitle)}</div>
-              <div style="font-size: 24px; font-weight: 800; line-height: 1.2; margin-top: 6px;">${safeText(info.companyName)}</div>
-              <div style="font-size: 13px; margin-top: 6px; opacity: 0.95;">Automated system notification from ${safeText(info.companyName)}</div>
+              <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.85; font-weight: 700;">${safeText(info.companySubtitle)}</div>
+              <div style="font-size: 26px; font-weight: 800; line-height: 1.2; margin-top: 8px;">${safeText(info.companyName)}</div>
+              <div style="font-size: 14px; margin-top: 8px; opacity: 0.92;">Automated system notification from ${safeText(info.companyName)}</div>
             </div>
             <div style="${bodyStyles}">
               ${sectionTitle(title, 'This is an automated message. Please review the details below.')}
               ${body}
             </div>
             <div style="${footerStyles}">
-              <p style="margin: 0 0 8px 0; font-weight: 700; color: #0f172a;">Need help?</p>
-              <p style="margin: 0 0 6px 0;">Support: ${safeText(info.supportEmail)}</p>
+              <p style="margin: 0 0 8px 0; font-weight: 700; color: #475569;">Need help?</p>
+              <p style="margin: 0 0 10px 0;">Support: <a href="mailto:${safeText(info.supportEmail)}" style="color: #0ea5e9; text-decoration: none;">${safeText(info.supportEmail)}</a></p>
               <p style="margin: 0;">If this email was unexpected, please contact your system administrator.</p>
             </div>
           </div>
