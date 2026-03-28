@@ -28,6 +28,12 @@ export default function UserProfileView() {
   const [changing, setChanging] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const matchesStoredPassword = (storedPassword: unknown, plainPassword: string) => {
+    const storedValue = String(storedPassword || '');
+    if (!storedValue) return false;
+    return storedValue === plainPassword || storedValue === hashPassword(plainPassword);
+  };
+
   useEffect(() => {
     if (!user) return;
     const load = async () => {
@@ -58,10 +64,8 @@ export default function UserProfileView() {
 
     setChanging(true);
     try {
-      // Verify current password
-      const currentHash = hashPassword(currentPassword);
       const { data: userData } = await supabase.from('users').select('password_hash').eq('email', user!.email).single();
-      if (!userData || (userData as any).password_hash !== currentHash) {
+      if (!userData || !matchesStoredPassword((userData as any).password_hash, currentPassword)) {
         toast.error('Current password is incorrect');
         setChanging(false);
         return;

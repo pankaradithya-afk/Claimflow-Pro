@@ -27,6 +27,7 @@ export default function UserManagementView() {
   const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'User', advance: '0', manager: '' });
+  const canAssignManager = form.role === 'User';
 
   const loadUsers = async () => {
     setLoading(true);
@@ -237,7 +238,10 @@ export default function UserManagementView() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Role</Label>
-                <Select value={form.role} onValueChange={v => setForm({ ...form, role: v })}>
+                <Select
+                  value={form.role}
+                  onValueChange={v => setForm({ ...form, role: v, manager: v === 'User' ? form.manager : '' })}
+                >
                   <SelectTrigger className="h-11 sm:h-10"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="User">User</SelectItem>
@@ -252,18 +256,20 @@ export default function UserManagementView() {
                 <Input className="h-11 sm:h-10" type="number" min="0" value={form.advance} onChange={e => setForm({ ...form, advance: e.target.value })} placeholder="0" />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>Manager</Label>
-              <Select value={form.manager} onValueChange={v => setForm({ ...form, manager: v })}>
-                <SelectTrigger className="h-11 sm:h-10"><SelectValue placeholder="Select Manager (Optional)" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No Manager</SelectItem>
-                  {allUsers.filter(u => u.role === 'Manager' || u.role === 'Admin' || u.role === 'Super Admin').map(u => (
-                    <SelectItem key={u.email} value={u.email}>{u.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {canAssignManager && (
+              <div className="space-y-2">
+                <Label>Manager</Label>
+                <Select value={form.manager} onValueChange={v => setForm({ ...form, manager: v })}>
+                  <SelectTrigger className="h-11 sm:h-10"><SelectValue placeholder="Select Manager (Optional)" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Manager</SelectItem>
+                    {allUsers.filter(u => u.role === 'Manager' || u.role === 'Admin' || u.role === 'Super Admin').map(u => (
+                      <SelectItem key={u.email} value={u.email}>{u.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
               <Button type="button" variant="outline" onClick={() => setShowCreate(false)} className="w-full sm:w-auto h-11 sm:h-10">Cancel</Button>
               <Button type="submit" disabled={processing} className="w-full sm:w-auto h-11 sm:h-10">
@@ -290,7 +296,10 @@ export default function UserManagementView() {
               </div>
               <div className="space-y-2">
                 <Label>Role</Label>
-                <Select value={editUser.role} onValueChange={v => setEditUser({ ...editUser, role: v })}>
+                <Select
+                  value={editUser.role}
+                  onValueChange={v => setEditUser({ ...editUser, role: v, manager: v === 'User' ? editUser.manager : '' })}
+                >
                   <SelectTrigger className="h-11 sm:h-10"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="User">User</SelectItem>
@@ -304,18 +313,20 @@ export default function UserManagementView() {
                 <Label>Password (leave blank to keep current)</Label>
                 <Input className="h-11 sm:h-10" type="password" value={editUser.password} onChange={e => setEditUser({ ...editUser, password: e.target.value })} placeholder="Enter new password" />
               </div>
-              <div className="space-y-2">
-                <Label>Manager</Label>
-                <Select value={editUser.manager || 'none'} onValueChange={v => setEditUser({ ...editUser, manager: v === 'none' ? '' : v })}>
-                  <SelectTrigger className="h-11 sm:h-10"><SelectValue placeholder="Select Manager" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No Manager</SelectItem>
-                    {allUsers.filter(u => u.email !== editUser.originalEmail).map(u => (
-                      <SelectItem key={u.email} value={u.email}>{u.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {editUser.role === 'User' && (
+                <div className="space-y-2">
+                  <Label>Manager</Label>
+                  <Select value={editUser.manager || 'none'} onValueChange={v => setEditUser({ ...editUser, manager: v === 'none' ? '' : v })}>
+                    <SelectTrigger className="h-11 sm:h-10"><SelectValue placeholder="Select Manager" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No Manager</SelectItem>
+                      {allUsers.filter(u => u.email !== editUser.originalEmail).map(u => (
+                        <SelectItem key={u.email} value={u.email}>{u.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
                 <Button variant="outline" onClick={() => setEditUser(null)} className="w-full sm:w-auto h-11 sm:h-10">Cancel</Button>
                 <Button onClick={handleUpdate} disabled={processing} className="w-full sm:w-auto h-11 sm:h-10">Save Changes</Button>

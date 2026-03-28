@@ -9,6 +9,428 @@ export interface ProjectCodeOption {
   expenseCategories: string[];
 }
 
+const DEFAULT_APP_URL = 'https://claimflow-pro-main.vercel.app';
+
+interface ClaimExpenseReviewInput {
+  expenseId?: string;
+  approvedAmount?: number;
+  remarks?: string;
+}
+
+interface AdminClaimReviewInput {
+  remarks?: string;
+  items: ClaimExpenseReviewInput[];
+}
+
+interface StoredReviewMetadataItem {
+  expenseId: string;
+  approvedAmount: number;
+  deductionAmount: number;
+  remarks: string;
+}
+
+interface StoredReviewMetadata {
+  approvedTotal: number;
+  deductionTotal: number;
+  items: StoredReviewMetadataItem[];
+}
+
+interface LegacyAdminReviewRecovery {
+  approvedTotal: number;
+  deductionTotal: number;
+  remarks: string;
+  items: StoredReviewMetadataItem[];
+}
+
+const REVIEW_METADATA_MARKER = '[claimflow-review]';
+const AUDIT_REVIEW_METADATA_MARKER = '[claimflow-review-audit]';
+
+function parseMoney(value: unknown): number {
+  const parsed = parseFloat(String(value ?? 0));
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function clampMoney(value: number, min = 0): number {
+  if (!Number.isFinite(value)) return min;
+  return Math.max(min, Math.round(value * 100) / 100);
+}
+
+function parseReviewMetadata(description: unknown): { remarks: string; metadata: StoredReviewMetadata | null } {
+  const rawDescription = String(description || '');
+  const markerIndex = rawDescription.indexOf(REVIEW_METADATA_MARKER);
+
+  if (markerIndex === -1) {
+    return {
+      remarks: rawDescription.trim(),
+      metadata: null,
+    };
+  }
+
+  const remarks = rawDescription.slice(0, markerIndex).trim();
+  const payload = rawDescription.slice(markerIndex + REVIEW_METADATA_MARKER.length).trim();
+
+  if (!payload) {
+    return { remarks, metadata: null };
+  }
+
+  try {
+    const parsed = JSON.parse(payload) as Partial<StoredReviewMetadata>;
+    return {
+      remarks,
+      metadata: {
+        approvedTotal: clampMoney(parseMoney(parsed.approvedTotal)),
+        deductionTotal: clampMoney(parseMoney(parsed.deductionTotal)),
+        items: Array.isArray(parsed.items)
+          ? parsed.items.map((item) => ({
+              expenseId: String(item?.expenseId || '').trim(),
+              approvedAmount: clampMoney(parseMoney(item?.approvedAmount)),
+              deductionAmount: clampMoney(parseMoney(item?.deductionAmount)),
+              remarks: String(item?.remarks || '').trim(),
+            })).filter((item) => item.expenseId)
+          : [],
+      },
+    };
+  } catch {
+    return {
+      remarks: rawDescription.trim(),
+      metadata: null,
+    };
+  }
+}
+
+function parseAuditReviewMetadata(details: unknown): { summary: string; metadata: StoredReviewMetadata | null } {
+  const rawDetails = String(details || '');
+  const markerIndex = rawDetails.indexOf(AUDIT_REVIEW_METADATA_MARKER);
+
+  if (markerIndex === -1) {
+    return {
+      summary: rawDetails.trim(),
+      metadata: null,
+    };
+  }
+
+  const summary = rawDetails.slice(0, markerIndex).trim();
+  const payload = rawDetails.slice(markerIndex + AUDIT_REVIEW_METADATA_MARKER.length).trim();
+
+  if (!payload) {
+    return { summary, metadata: null };
+  }
+
+  try {
+    const parsed = JSON.parse(payload) as Partial<StoredReviewMetadata>;
+    return {
+      summary,
+      metadata: {
+        approvedTotal: clampMoney(parseMoney(parsed.approvedTotal)),
+        deductionTotal: clampMoney(parseMoney(parsed.deductionTotal)),
+        items: Array.isArray(parsed.items)
+          ? parsed.items.map((item) => ({
+              expenseId: String(item?.expenseId || '').trim(),
+              approvedAmount: clampMoney(parseMoney(item?.approvedAmount)),
+              deductionAmount: clampMoney(parseMoney(item?.deductionAmount)),
+              remarks: String(item?.remarks || '').trim(),
+            })).filter((item) => item.expenseId)
+          : [],
+      },
+    };
+  } catch {
+    return {
+      summary: rawDetails.trim(),
+      metadata: null,
+    };
+  }
+}
+
+function buildReviewDescription(remarks: string | undefined, metadata: StoredReviewMetadata) {
+  const normalizedRemarks = String(remarks || '').trim();
+  const serializedMetadata = JSON.stringify(metadata);
+  return normalizedRemarks
+    ? `${normalizedRemarks}\n\n${REVIEW_METADATA_MARKER}${serializedMetadata}`
+    : `${REVIEW_METADATA_MARKER}${serializedMetadata}`;
+}
+
+function buildAuditReviewDetails(remarks: string | undefined, metadata: StoredReviewMetadata) {
+  const normalizedRemarks = String(remarks || '').trim();
+  const serializedMetadata = JSON.stringify(metadata);
+  const summary = normalizedRemarks
+    ? `Approved total: ₹${metadata.approvedTotal} | ${normalizedRemarks}`
+    : `Approved total: ₹${metadata.approvedTotal}`;
+  return `${summary}\n\n${AUDIT_REVIEW_METADATA_MARKER}${serializedMetadata}`;
+}
+
+function getMetadataReviewItem(claim: any, expenseId: string) {
+  const { metadata } = parseReviewMetadata(claim?.admin_description);
+  if (!metadata) return null;
+  return metadata.items.find((item) => item.expenseId === expenseId) || null;
+}
+
+function getClaimSubmittedTotal(claim: any) {
+  return parseMoney(claim?.grand_total ?? (parseMoney(claim?.total_with_bill) + parseMoney(claim?.total_without_bill)));
+}
+
+function parseLegacyApprovedTotal(details: unknown) {
+  const rawDetails = String(details || '').trim();
+  if (!rawDetails) return null;
+
+  const match = rawDetails.match(/approved total:\s*[^0-9-]*([0-9][0-9,]*(?:\.\d+)?)/i);
+  if (!match) return null;
+
+  return clampMoney(parseMoney(match[1].replace(/,/g, '')));
+}
+
+function getDerivedAdminApprovalStatus(claim: any) {
+  const explicitStatus = String(claim?.admin_approval_status || '').trim();
+  if (explicitStatus) return explicitStatus;
+
+  const claimStatus = String(claim?.status || '').toLowerCase();
+  const hasAdminAction = Boolean(claim?.admin_email || claim?.admin_approval_date || claim?.admin_description);
+  if (hasAdminAction && (claimStatus === 'pending manager approval' || claimStatus === 'approved')) {
+    return 'Verified';
+  }
+
+  return '';
+}
+
+function hasPersistedExpenseReview(expense: any) {
+  const originalTotal = getExpenseOriginalTotal(expense);
+  const approvedAmount = parseMoney(expense?.approved_amount);
+  const deductionAmount = parseMoney(expense?.deduction_amount);
+  const remarks = String(expense?.approval_remarks || '').trim();
+
+  if (remarks) return true;
+  if (deductionAmount > 0) return true;
+  if (originalTotal <= 0) return approvedAmount !== 0 || deductionAmount !== 0;
+
+  return approvedAmount > 0 || Math.abs(approvedAmount - originalTotal) < 0.005;
+}
+
+function getExpenseReviewState(expense: any) {
+  const originalTotal = getExpenseOriginalTotal(expense);
+
+  if (!hasPersistedExpenseReview(expense)) {
+    return {
+      approvedAmount: originalTotal,
+      deductionAmount: 0,
+      hasPersistedReview: false,
+    };
+  }
+
+  const approvedAmount = clampMoney(Math.min(parseMoney(expense?.approved_amount ?? originalTotal), originalTotal));
+  const deductionAmount = clampMoney(Math.max(parseMoney(expense?.deduction_amount ?? Math.max(0, originalTotal - approvedAmount)), 0));
+
+  return {
+    approvedAmount,
+    deductionAmount,
+    hasPersistedReview: true,
+  };
+}
+
+function getClaimAdminReviewSnapshot(claim: any) {
+  const expenses = Array.isArray(claim?.expense_items) ? claim.expense_items : [];
+  const { metadata } = parseReviewMetadata(claim?.admin_description);
+  const lineItemTotals = expenses.reduce((acc, expense) => {
+    const review = getExpenseReviewState(expense);
+    acc.approvedTotal += review.approvedAmount;
+    acc.deductionTotal += review.deductionAmount;
+    if (review.hasPersistedReview) acc.persistedItemCount += 1;
+    return acc;
+  }, { approvedTotal: 0, deductionTotal: 0, persistedItemCount: 0 });
+
+  const claimLevelApproved = clampMoney(parseMoney(claim?.admin_approved_total ?? claim?.reviewed_total));
+  const claimLevelDeduction = clampMoney(parseMoney(claim?.admin_deduction_total));
+  const status = getDerivedAdminApprovalStatus(claim);
+  const hasClaimLevelReview = claimLevelApproved > 0 || claimLevelDeduction > 0;
+  const hasPersistedLineItems = lineItemTotals.persistedItemCount > 0;
+  const hasMetadataReview = Boolean(metadata && (metadata.items.length > 0 || metadata.approvedTotal > 0 || metadata.deductionTotal > 0));
+  const hasAdminReview = Boolean(status) || hasClaimLevelReview || hasPersistedLineItems;
+
+  return {
+    status,
+    hasAdminReview: hasAdminReview || hasMetadataReview,
+    hasPersistedLineItems,
+    approvedTotal: hasPersistedLineItems
+      ? clampMoney(lineItemTotals.approvedTotal)
+      : hasClaimLevelReview
+        ? claimLevelApproved
+        : hasMetadataReview
+          ? metadata!.approvedTotal
+          : hasAdminReview
+          ? getClaimSubmittedTotal(claim)
+          : 0,
+    deductionTotal: hasPersistedLineItems
+      ? clampMoney(lineItemTotals.deductionTotal)
+      : hasClaimLevelReview
+        ? claimLevelDeduction
+        : hasMetadataReview
+          ? metadata!.deductionTotal
+        : 0,
+  };
+}
+
+function applyLegacyAdminReviewRecovery(
+  claim: any,
+  adminReview: ReturnType<typeof getClaimAdminReviewSnapshot>,
+  recovery?: LegacyAdminReviewRecovery | null
+) {
+  if (!recovery) return adminReview;
+
+  const { metadata } = parseReviewMetadata(claim?.admin_description);
+  const hasClaimLevelReview = clampMoney(parseMoney(claim?.admin_approved_total ?? claim?.reviewed_total)) > 0
+    || clampMoney(parseMoney(claim?.admin_deduction_total)) > 0;
+
+  if (metadata || hasClaimLevelReview || adminReview.hasPersistedLineItems) {
+    return adminReview;
+  }
+
+  return {
+    ...adminReview,
+    hasAdminReview: true,
+    approvedTotal: recovery.approvedTotal,
+    deductionTotal: recovery.deductionTotal,
+    usedLegacyRecovery: true,
+  };
+}
+
+function getLegacySingleExpenseReview(
+  claim: any,
+  expenses: any[],
+  adminReview: ReturnType<typeof getClaimAdminReviewSnapshot> & { usedLegacyRecovery?: boolean }
+) {
+  if (!adminReview.usedLegacyRecovery || expenses.length !== 1) return null;
+
+  const originalAmount = getExpenseOriginalTotal(expenses[0]);
+  const approvedAmount = clampMoney(Math.min(adminReview.approvedTotal, originalAmount));
+  const deductionAmount = clampMoney(Math.max(0, originalAmount - approvedAmount));
+
+  return {
+    approvedAmount,
+    deductionAmount,
+  };
+}
+
+function getLegacyRecoveryItem(
+  recovery: LegacyAdminReviewRecovery | null | undefined,
+  expenseId: string
+) {
+  if (!recovery) return null;
+  return recovery.items.find((item) => item.expenseId === expenseId) || null;
+}
+
+async function getLegacyAdminReviewRecoveryMap(claims: Array<{ claimId: string; submittedTotal: number }>) {
+  const normalizedClaims = claims
+    .map((claim) => ({
+      claimId: String(claim.claimId || '').trim(),
+      submittedTotal: clampMoney(parseMoney(claim.submittedTotal)),
+    }))
+    .filter((claim) => claim.claimId);
+
+  if (normalizedClaims.length === 0) {
+    return new Map<string, LegacyAdminReviewRecovery>();
+  }
+
+  const claimIds = normalizedClaims.map((claim) => claim.claimId);
+  const submittedTotals = new Map(normalizedClaims.map((claim) => [claim.claimId, claim.submittedTotal]));
+  const { data } = await supabase
+    .from('audit_logs' as any)
+    .select('target_id, details, created_at, action')
+    .in('action', ['claim_admin_verified', 'claim_admin_reviewed'])
+    .in('target_id', claimIds)
+    .order('created_at', { ascending: false });
+
+  const recoveryMap = new Map<string, LegacyAdminReviewRecovery>();
+  for (const row of (data || []) as any[]) {
+    const claimId = String(row?.target_id || '').trim();
+    if (!claimId || recoveryMap.has(claimId)) continue;
+
+    const parsedAuditReview = parseAuditReviewMetadata(row?.details);
+    const approvedTotal = parsedAuditReview.metadata?.approvedTotal ?? parseLegacyApprovedTotal(row?.details);
+    if (approvedTotal == null) continue;
+
+    const submittedTotal = submittedTotals.get(claimId) ?? approvedTotal;
+    recoveryMap.set(claimId, {
+      approvedTotal,
+      deductionTotal: parsedAuditReview.metadata?.deductionTotal ?? clampMoney(Math.max(0, submittedTotal - approvedTotal)),
+      remarks: parsedAuditReview.summary,
+      items: parsedAuditReview.metadata?.items || [],
+    });
+  }
+
+  return recoveryMap;
+}
+
+function getClaimTotal(claim: any) {
+  const adminStatus = getDerivedAdminApprovalStatus(claim).toLowerCase();
+  if (adminStatus === 'verified' || adminStatus === 'approved') {
+    return clampMoney(getClaimAdminReviewSnapshot(claim).approvedTotal);
+  }
+  return getClaimSubmittedTotal(claim);
+}
+
+function getResolvedClaimAmount(
+  claim: any,
+  adminReview: ReturnType<typeof getClaimAdminReviewSnapshot> & { usedLegacyRecovery?: boolean }
+) {
+  const adminStatus = String(adminReview.status || '').toLowerCase();
+  if (adminStatus === 'verified' || adminStatus === 'approved') {
+    return clampMoney(adminReview.approvedTotal);
+  }
+
+  return getClaimTotal(claim);
+}
+
+function getExpenseOriginalTotal(expense: any) {
+  return parseMoney(expense?.amount_with_bill) + parseMoney(expense?.amount_without_bill);
+}
+
+function getExpenseReviewTotals(expenses: any[] = []) {
+  return expenses.reduce((acc, expense) => {
+    const { approvedAmount, deductionAmount } = getExpenseReviewState(expense);
+    acc.approvedTotal += approvedAmount;
+    acc.deductionTotal += deductionAmount;
+    return acc;
+  }, { approvedTotal: 0, deductionTotal: 0 });
+}
+
+async function persistExpenseReviewUpdates(expenses: any[]) {
+  await Promise.all(expenses.map(async (expense) => {
+    const { error } = await supabase.from('expense_items').update({
+      approved_amount: expense.approved_amount,
+      deduction_amount: expense.deduction_amount,
+      approval_remarks: expense.approval_remarks,
+    } as any).eq('id', expense.id);
+
+    if (error) throw error;
+  }));
+}
+
+function mapExpenseReviewItems(expenses: any[], reviewItems: ClaimExpenseReviewInput[]) {
+  let totalApproved = 0;
+  let totalDeducted = 0;
+
+  const updatedExpenses = expenses.map((expense, index) => {
+    const input = reviewItems.find((item) => item.expenseId && item.expenseId === expense.id) || reviewItems[index] || {};
+    const originalTotal = getExpenseOriginalTotal(expense);
+    const approvedAmount = clampMoney(Math.min(parseMoney(input.approvedAmount ?? originalTotal), originalTotal));
+    const deductionAmount = clampMoney(Math.max(0, originalTotal - approvedAmount));
+
+    totalApproved += approvedAmount;
+    totalDeducted += deductionAmount;
+
+    return {
+      ...expense,
+      approved_amount: approvedAmount,
+      deduction_amount: deductionAmount,
+      approval_remarks: String(input.remarks || '').trim() || null,
+    };
+  });
+
+  return {
+    updatedExpenses,
+    totalApproved: clampMoney(totalApproved),
+    totalDeducted: clampMoney(totalDeducted),
+  };
+}
+
 function normalizeCategoryList(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
 
@@ -70,6 +492,7 @@ async function sendEmailNotification(type: string, recipientEmail: string, data?
     if (!normalizedRecipientEmail) return;
     const settings = await getCompanySettings();
     if (settings?.email_notifications_enabled === false) return;
+    const appUrl = getAppUrl(settings?.website);
     const { error } = await supabase.functions.invoke('send-notification', {
       body: {
         type,
@@ -80,8 +503,8 @@ async function sendEmailNotification(type: string, recipientEmail: string, data?
           companySubtitle: settings?.company_subtitle || 'Claims Management System',
           supportEmail: settings?.support_email || 'projects@ipi-india.com',
           logoUrl: settings?.logo_url || '/ipi-logo.jpg',
-          appUrl: settings?.website || 'https://claimflow-pro-kappa.vercel.app',
-          loginUrl: settings?.website || 'https://claimflow-pro-kappa.vercel.app',
+          appUrl,
+          loginUrl: appUrl,
           currency: settings?.currency_symbol || data?.currency || '₹',
         },
       },
@@ -101,16 +524,19 @@ function normalizeAppUrl(url?: string | null) {
   return (url || '').trim().replace(/\/+$/, '');
 }
 
-function buildClaimActionLink(appUrl: string, claimId: string, action: 'approve' | 'reject', role: 'manager' | 'admin', approverEmail: string) {
+function buildClaimReviewLink(appUrl: string, claimId: string, role: 'manager' | 'admin') {
   const baseUrl = normalizeAppUrl(appUrl);
   if (!baseUrl) return '';
   const params = new URLSearchParams({
     claimId,
-    action,
     role,
-    approverEmail,
   });
   return `${baseUrl}/claim-action?${params.toString()}`;
+}
+
+function getAppUrl(url?: string | null) {
+  const browserOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+  return normalizeAppUrl(url || browserOrigin) || DEFAULT_APP_URL;
 }
 
 function mapAttachmentEmailData(fileIds?: string[]) {
@@ -125,14 +551,28 @@ function mapAttachmentEmailData(fileIds?: string[]) {
   });
 }
 
-async function getAdminApproverEmails() {
+function isSchemaCacheColumnError(error: any) {
+  const message = String(error?.message || error || '').toLowerCase();
+  return message.includes('schema cache') || message.includes('could not find the') || message.includes('column');
+}
+
+async function getAdminApproverEmails(excludeEmails: string[] = []) {
   const { data } = await supabase
     .from('users')
     .select('email')
     .in('role', ['Admin', 'Super Admin'])
     .eq('active', true);
 
-  return [...new Set((data || []).map((user: any) => user.email).filter(Boolean))];
+  const excluded = new Set(
+    excludeEmails
+      .map((email) => String(email || '').trim().toLowerCase())
+      .filter(Boolean)
+  );
+
+  return [...new Set((data || [])
+    .map((user: any) => String(user.email || '').trim().toLowerCase())
+    .filter(Boolean)
+    .filter((email) => !excluded.has(email)))];
 }
 
 async function getSuperAdminApproverEmails() {
@@ -142,7 +582,133 @@ async function getSuperAdminApproverEmails() {
     .eq('role', 'Super Admin')
     .eq('active', true);
 
-  return [...new Set((data || []).map((user: any) => user.email).filter(Boolean))];
+  return [...new Set((data || [])
+    .map((user: any) => String(user.email || '').trim().toLowerCase())
+    .filter(Boolean))];
+}
+
+async function getFinalApproverEmails(managerEmail?: string | null, excludeEmails: string[] = []) {
+  const normalizedManagerEmail = String(managerEmail || '').trim().toLowerCase();
+  const superAdminEmails = await getSuperAdminApproverEmails();
+  const excluded = new Set(
+    excludeEmails
+      .map((email) => String(email || '').trim().toLowerCase())
+      .filter(Boolean)
+  );
+
+  return [...new Set(
+    [normalizedManagerEmail, ...superAdminEmails]
+      .filter(Boolean)
+      .filter((email) => !excluded.has(email))
+  )];
+}
+
+async function hasExistingApprovedSettlement(claimId: string) {
+  const { data: existingSettlement } = await supabase
+    .from('transactions')
+    .select('id')
+    .eq('reference_id', claimId)
+    .eq('type', 'claim_approved')
+    .maybeSingle();
+
+  return Boolean(existingSettlement);
+}
+
+async function createApprovedSettlementTransaction(claimId: string, userEmail: string, approverEmail: string, approvedAmount: number) {
+  const currentBalance = await getCurrentBalance(userEmail);
+  const { error } = await supabase.from('transactions').insert({
+    user_email: userEmail,
+    admin_email: approverEmail,
+    type: 'claim_approved',
+    reference_id: claimId,
+    credit: approvedAmount,
+    debit: 0,
+    balance_after: currentBalance + approvedAmount,
+    description: `Claim ${claimId} approved - settlement`,
+  });
+
+  if (error) throw error;
+}
+
+async function getActiveUserByEmail(email: string) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  if (!normalizedEmail) throw new Error('Approver email is required.');
+
+  const { data: user } = await supabase
+    .from('users')
+    .select('email, role, active')
+    .eq('email', normalizedEmail)
+    .maybeSingle();
+
+  if (!user || (user as any).active === false) {
+    throw new Error('Approver account is not active.');
+  }
+
+  return {
+    email: String((user as any).email || '').trim().toLowerCase(),
+    role: String((user as any).role || '').trim(),
+  };
+}
+
+function isAdminRole(role: string) {
+  const normalizedRole = String(role || '').trim().toLowerCase();
+  return normalizedRole === 'admin' || normalizedRole === 'super admin';
+}
+
+function isManagerFinalRole(role: string) {
+  const normalizedRole = String(role || '').trim().toLowerCase();
+  return normalizedRole === 'manager' || normalizedRole === 'super admin';
+}
+
+async function assertAdminReviewPermission(claimId: string, approverEmail: string) {
+  const approver = await getActiveUserByEmail(approverEmail);
+
+  if (!isAdminRole(approver.role)) {
+    throw new Error('Only admin or super admin can review this claim.');
+  }
+
+  const { data: claim } = await supabase
+    .from('claims')
+    .select('claim_id, status')
+    .eq('claim_id', claimId)
+    .single();
+
+  if (!claim) throw new Error('Claim not found.');
+
+  if (String((claim as any).status || '').trim().toLowerCase() !== 'pending admin approval') {
+    throw new Error('This claim is not pending admin review.');
+  }
+
+  return approver;
+}
+
+async function assertManagerFinalPermission(claimId: string, approverEmail: string) {
+  const approver = await getActiveUserByEmail(approverEmail);
+
+  if (!isManagerFinalRole(approver.role)) {
+    throw new Error('Only the assigned manager or a super admin can finalize this claim.');
+  }
+
+  const { data: claim } = await supabase
+    .from('claims')
+    .select('claim_id, status, manager_email')
+    .eq('claim_id', claimId)
+    .single();
+
+  if (!claim) throw new Error('Claim not found.');
+
+  if (String((claim as any).status || '').trim().toLowerCase() !== 'pending manager approval') {
+    throw new Error('This claim is not pending final approval.');
+  }
+
+  const managerEmail = String((claim as any).manager_email || '').trim().toLowerCase();
+  const approverRole = String(approver.role || '').trim().toLowerCase();
+
+  if (approverRole === 'manager' && managerEmail !== approver.email) {
+    throw new Error('This claim is assigned to a different manager.');
+  }
+
+  return approver;
 }
 
 
@@ -209,7 +775,7 @@ export async function updateCompanySettings(settings: any) {
 export async function getDashboardSummary(userEmail: string, userRole: string) {
   const role = userRole.toLowerCase();
 
-  const { data: claims } = await supabase.from('claims').select('*');
+  const { data: claims } = await supabase.from('claims').select('*, expense_items(*)');
   const { data: txs } = await supabase.from('transactions').select('reference_id, user_email').eq('type', 'claim_submitted');
 
   const claimOwnerMap: Record<string, string> = {};
@@ -217,7 +783,7 @@ export async function getDashboardSummary(userEmail: string, userRole: string) {
 
   const processedClaims = (claims || []).map((c: any) => ({
     id: c.claim_id,
-    amount: parseFloat(c.grand_total || (c.total_with_bill + c.total_without_bill) || 0),
+    amount: getClaimTotal(c),
     status: String(c.status || '').toLowerCase(),
     managerStatus: String(c.manager_approval_status || '').toLowerCase(),
     managerEmail: String(c.manager_email || '').toLowerCase(),
@@ -268,11 +834,31 @@ export async function getDashboardSummary(userEmail: string, userRole: string) {
 
 // ============= BALANCE =============
 export async function getCurrentBalance(email: string): Promise<number> {
-  const { data: lastTx } = await supabase
-    .from('transactions').select('balance_after').eq('user_email', email)
-    .order('created_at', { ascending: false }).limit(1).maybeSingle();
+  const { data: txs } = await supabase
+    .from('transactions')
+    .select('type, reference_id, credit, debit, balance_after')
+    .eq('user_email', email)
+    .order('created_at', { ascending: true });
 
-  if (lastTx && (lastTx as any).balance_after != null) return parseFloat((lastTx as any).balance_after);
+  if (txs && txs.length > 0) {
+    const seenClaimTx = new Set<string>();
+    let balance = 0;
+
+    for (const tx of txs as any[]) {
+      const type = String(tx.type || '');
+      const referenceId = String(tx.reference_id || '');
+      const transactionKey = referenceId ? `${type}:${referenceId}` : '';
+
+      if (transactionKey && type.startsWith('claim_')) {
+        if (seenClaimTx.has(transactionKey)) continue;
+        seenClaimTx.add(transactionKey);
+      }
+
+      balance += parseMoney(tx.credit) - parseMoney(tx.debit);
+    }
+
+    return clampMoney(balance);
+  }
 
   const { data: user } = await supabase.from('users').select('advance_amount').eq('email', email).maybeSingle();
   if (user) return parseFloat((user as any).advance_amount) || 0;
@@ -323,22 +909,9 @@ export async function submitClaim(claim: {
 
   const grandTotal = totalWithBill + totalWithoutBill;
 
-  // Get company workflow settings
   const companySettings = await getCompanySettings();
-  const requireManager = companySettings?.require_manager_approval ?? true;
-  const autoApproveThreshold = parseFloat(companySettings?.auto_approve_below || 0);
-
-  let status = 'Pending Admin Approval';
-  let managerApprovalStatus = 'Approved';
-
-  // Auto-approve if below threshold
-  if (autoApproveThreshold > 0 && grandTotal <= autoApproveThreshold) {
-    status = 'Approved';
-    managerApprovalStatus = 'Approved';
-  } else if (requireManager && managerEmail) {
-    status = 'Pending Manager Approval';
-    managerApprovalStatus = 'Pending';
-  }
+  const status = 'Pending Admin Approval';
+  const managerApprovalStatus = 'Pending';
 
   // Get current balance
   const currentBalance = await getCurrentBalance(userEmail);
@@ -386,7 +959,54 @@ export async function submitClaim(claim: {
     amount: (expense.amountWithBill || 0) + (expense.amountWithoutBill || 0),
     totalAmount: (expense.amountWithBill || 0) + (expense.amountWithoutBill || 0),
   }));
-  const appUrl = normalizeAppUrl(companySettings?.website || 'https://claimflow-pro-kappa.vercel.app');
+  const appUrl = getAppUrl(companySettings?.website);
+  const adminReviewLink = `${appUrl}/admin-approval`;
+  const requireManager = companySettings?.require_manager_approval ?? true;
+
+  const adminApprovers = await getAdminApproverEmails(managerEmail ? [managerEmail] : []);
+  await logAudit('claim_submitted', userEmail, 'claim', claimID, `Amount: â‚¹${grandTotal}`);
+  await Promise.all(adminApprovers.map((email) =>
+    createNotification(email, 'New Claim for Admin Review', `${userName} submitted claim ${claimID} (â‚¹${grandTotal.toLocaleString('en-IN')})`, 'info', claimID)
+  ));
+  await createNotification(userEmail, 'Claim Submitted', `Your claim ${claimID} has been submitted successfully and is waiting for admin review.`, 'success', claimID);
+
+  await sendEmailNotification('claim_submitted_user', userEmail, {
+    claim_id: claimID,
+    claim_number: claimNumber,
+    generated_on: new Date().toISOString(),
+    submitted_by: userName,
+    submission_date: new Date().toISOString(),
+    project_site: claim.site,
+    primary_project_code: primaryProjectCode,
+    status: 'Pending Admin Approval',
+    total_amount: grandTotal,
+    total_with_bill: totalWithBill,
+    total_without_bill: totalWithoutBill,
+    employee_name: userName,
+    currency: 'â‚¹',
+    items: expenseItemsForEmail,
+    attachments: attachmentsForEmail,
+  });
+
+  await Promise.all(adminApprovers.map((email) =>
+    sendEmailNotification('claim_submitted_admin', email, {
+      claim_id: claimID,
+      claim_number: claimNumber,
+      employee_name: userName,
+      employee_email: userEmail,
+      project_site: claim.site,
+      primary_project_code: primaryProjectCode,
+      submission_date: new Date().toISOString(),
+      admin_status: 'Pending Review',
+      total_amount: grandTotal,
+      currency: 'â‚¹',
+      items: expenseItemsForEmail,
+      attachments: attachmentsForEmail,
+      review_link: adminReviewLink,
+    })
+  ));
+
+  return { ok: true, id: claimNumber, message: `Claim ${claimNumber} submitted. Status: Pending Admin Approval` };
 
   // Notifications & audit
   await logAudit('claim_submitted', userEmail, 'claim', claimID, `Amount: ₹${grandTotal}`);
@@ -449,8 +1069,7 @@ export async function submitClaim(claim: {
       currency: '₹',
       items: expenseItemsForEmail,
       attachments: attachmentsForEmail,
-      approve_link: buildClaimActionLink(appUrl, claimID, 'approve', 'manager', managerEmail),
-      reject_link: buildClaimActionLink(appUrl, claimID, 'reject', 'manager', managerEmail)
+      review_link: buildClaimReviewLink(appUrl, claimID, 'manager')
     });
     const superAdminApprovers = await getSuperAdminApproverEmails();
     await Promise.all(superAdminApprovers.map((email) =>
@@ -468,27 +1087,7 @@ export async function submitClaim(claim: {
         currency: '₹',
         items: expenseItemsForEmail,
         attachments: attachmentsForEmail,
-        approve_link: buildClaimActionLink(appUrl, claimID, 'approve', 'admin', email),
-        reject_link: buildClaimActionLink(appUrl, claimID, 'reject', 'admin', email),
-      })
-    ));
-    await Promise.all(superAdminApprovers.map((email) =>
-      sendEmailNotification('claim_submitted_manager', email, {
-        claim_id: claimID,
-        claim_number: claimNumber,
-        employee_name: userName,
-        employee_email: userEmail,
-        project_site: claim.site,
-        primary_project_code: primaryProjectCode,
-        submission_date: new Date().toISOString(),
-        manager_status: 'Pending',
-        admin_status: 'Pending',
-        total_amount: grandTotal,
-        currency: '₹',
-        items: expenseItemsForEmail,
-        attachments: attachmentsForEmail,
-        approve_link: buildClaimActionLink(appUrl, claimID, 'approve', 'manager', email),
-        reject_link: buildClaimActionLink(appUrl, claimID, 'reject', 'manager', email),
+        review_link: buildClaimReviewLink(appUrl, claimID, 'manager'),
       })
     ));
   } else if (status === 'Pending Admin Approval') {
@@ -508,8 +1107,7 @@ export async function submitClaim(claim: {
         currency: '₹',
         items: expenseItemsForEmail,
         attachments: attachmentsForEmail,
-        approve_link: buildClaimActionLink(appUrl, claimID, 'approve', 'admin', email),
-        reject_link: buildClaimActionLink(appUrl, claimID, 'reject', 'admin', email),
+        review_link: buildClaimReviewLink(appUrl, claimID, 'admin'),
       })
     ));
   }
@@ -519,30 +1117,48 @@ export async function submitClaim(claim: {
 
 // ============= APPROVALS =============
 export async function getPendingManagerClaims(userEmail: string, userRole: string) {
-  const { data: claims } = await supabase.from('claims').select('*')
-    .or('status.eq.Pending Manager Approval,manager_approval_status.eq.Pending')
+  const { data: claims } = await supabase.from('claims').select('*, expense_items(*)')
+    .eq('status', 'Pending Manager Approval')
     .order('created_at', { ascending: false });
 
   if (!claims) return [];
   const myEmail = userEmail.toLowerCase();
   const role = userRole.toLowerCase();
-
-  return (claims as any[]).filter(c => {
+  const visibleClaims = (claims as any[]).filter(c => {
     if (role === 'admin' || role === 'super admin') return true;
     if (role === 'manager') return String(c.manager_email || '').toLowerCase() === myEmail;
     return false;
-  }).map(c => ({
-    claimId: c.claim_id,
+  });
+  const recoveryMap = await getLegacyAdminReviewRecoveryMap(
+    visibleClaims.map((claim) => ({
+      claimId: claim.claim_id,
+      submittedTotal: getClaimSubmittedTotal(claim),
+    }))
+  );
+
+  return visibleClaims.map(c => {
+    const adminReview = applyLegacyAdminReviewRecovery(
+      c,
+      getClaimAdminReviewSnapshot(c),
+      recoveryMap.get(String(c.claim_id || '').trim()) || null
+    );
+    return {
+    claimId: c.claim_number || c.claim_id,
+    claimIdInternal: c.claim_id,
     date: c.created_at,
     submittedBy: c.submitted_by,
     userEmail: c.user_email,
     site: c.site_name,
     totalWithBill: parseFloat(c.total_with_bill || 0),
     totalWithoutBill: parseFloat(c.total_without_bill || 0),
-    amount: parseFloat(c.grand_total || (c.total_with_bill + c.total_without_bill) || 0),
+    amount: getResolvedClaimAmount(c, adminReview),
+    adminApprovedTotal: adminReview.approvedTotal,
+    adminDeductionTotal: adminReview.deductionTotal,
     managerEmail: c.manager_email,
     status: c.status,
-  }));
+    adminApprovalStatus: adminReview.status,
+  };
+  });
 }
 
 export async function getPendingAdminClaims() {
@@ -551,25 +1167,112 @@ export async function getPendingAdminClaims() {
 
   return (claims as any[]).filter(c => {
     const status = String(c.status || '').toLowerCase();
-    const managerStatus = String(c.manager_approval_status || '').toLowerCase();
-    return status === 'pending admin approval' || (managerStatus === 'approved' && status.includes('pending') && !status.includes('approved'));
+    return status === 'pending admin approval';
   }).map(c => ({
-    claimId: c.claim_id,
+    claimId: c.claim_number || c.claim_id,
+    claimIdInternal: c.claim_id,
     date: c.created_at,
     submittedBy: c.submitted_by,
     userEmail: c.user_email,
     site: c.site_name,
     totalWithBill: parseFloat(c.total_with_bill || 0),
     totalWithoutBill: parseFloat(c.total_without_bill || 0),
-    amount: parseFloat(c.grand_total || (c.total_with_bill + c.total_without_bill) || 0),
+    amount: getClaimTotal(c),
     status: c.status,
   }));
 }
 
-export async function approveClaimAsManager(claimId: string, approverEmail: string, description?: string) {
-  const { data: claim } = await supabase.from('claims').select('*').eq('claim_id', claimId).single();
+export async function approveClaimAsManager(claimId: string, approverEmail: string, descriptionOrReview?: string | AdminClaimReviewInput) {
+  const approver = await assertManagerFinalPermission(claimId, approverEmail);
+  const { data: claim } = await supabase.from('claims').select('*, expense_items(*)').eq('claim_id', claimId).single();
   if (!claim) throw new Error('Claim not found');
   const claimData = claim as any;
+  const description = typeof descriptionOrReview === 'string' ? descriptionOrReview : undefined;
+  const reviewInput = typeof descriptionOrReview === 'object' && descriptionOrReview ? descriptionOrReview : undefined;
+  const expenseItems = (claimData.expense_items || []) as any[];
+  const reviewedItems = mapExpenseReviewItems(
+    expenseItems,
+    reviewInput?.items?.length
+      ? reviewInput.items
+      : expenseItems.map((expense) => ({
+          expenseId: expense.id,
+          approvedAmount: expense.approved_amount ?? getExpenseOriginalTotal(expense),
+          remarks: expense.approval_remarks || '',
+        }))
+  );
+  const approvedAmount = reviewedItems.totalApproved;
+  const originalAmount = clampMoney(expenseItems.reduce((sum, expense) => sum + getExpenseOriginalTotal(expense), 0));
+  const deductionTotal = clampMoney(Math.max(0, originalAmount - approvedAmount));
+
+  if (await hasExistingApprovedSettlement(claimId)) {
+    const alreadyApprovedUpdates: any = {
+      status: 'Approved',
+      manager_approval_status: 'Approved',
+      manager_approval_date: new Date().toISOString(),
+    };
+    await supabase.from('claims').update(alreadyApprovedUpdates).eq('claim_id', claimId);
+    await logAudit('claim_manager_approved_duplicate', approver.email, 'claim', claimId, 'Skipped duplicate settlement transaction');
+    return;
+  }
+
+  const updates: any = {
+    status: 'Approved',
+    manager_approval_status: 'Approved',
+    manager_approval_date: new Date().toISOString(),
+    manager_description: reviewInput?.remarks || description || null,
+  };
+  const legacyUpdates: any = {
+    status: 'Approved',
+    manager_approval_status: 'Approved',
+    manager_approval_date: new Date().toISOString(),
+  };
+  const { error } = await supabase.from('claims').update(updates).eq('claim_id', claimId);
+  if (error) {
+    if (!isSchemaCacheColumnError(error)) throw error;
+    const { error: legacyError } = await supabase.from('claims').update(legacyUpdates).eq('claim_id', claimId);
+    if (legacyError) throw legacyError;
+  }
+
+  try {
+    await persistExpenseReviewUpdates(reviewedItems.updatedExpenses);
+  } catch (expenseError) {
+    if (!isSchemaCacheColumnError(expenseError)) throw expenseError;
+  }
+  await createApprovedSettlementTransaction(claimId, claimData.user_email, approver.email, approvedAmount);
+
+  await logAudit(
+    'claim_manager_approved',
+    approver.email,
+    'claim',
+    claimId,
+    reviewInput?.remarks ? `Approved total: Ã¢â€šÂ¹${approvedAmount} | ${reviewInput.remarks}` : description || undefined
+  );
+  await createNotification(claimData.user_email, 'Claim Fully Approved', `Your claim ${claimId} has been approved by manager. â‚¹${approvedAmount.toLocaleString('en-IN')} settled.`, 'success', claimId);
+  await sendEmailNotification('claim_approved', claimData.user_email, {
+    claim_no: claimData.claim_number || claimId,
+    total: approvedAmount,
+    approved_by: approver.email,
+    employee_name: claimData.user_name || claimData.submitted_by || 'there',
+    project_site: claimData.site_name,
+    original_total: originalAmount,
+    deduction_total: deductionTotal,
+    remarks: reviewInput?.remarks || description || '',
+    items: reviewedItems.updatedExpenses.map((expense: any) => ({
+      category: expense.category,
+      projectCode: expense.project_code,
+      claimDate: expense.expense_date,
+      description: expense.description,
+      amount: getExpenseOriginalTotal(expense),
+      totalAmount: getExpenseOriginalTotal(expense),
+      approvedAmount: parseMoney(expense.approved_amount),
+      deductionAmount: parseMoney(expense.deduction_amount),
+      remarks: expense.approval_remarks || '',
+    })),
+    currency: 'â‚¹',
+    status: 'Fully Approved',
+  });
+  return;
+  /*
   
   const updates: any = {
     status: 'Pending Admin Approval',
@@ -582,7 +1285,7 @@ export async function approveClaimAsManager(claimId: string, approverEmail: stri
   await logAudit('claim_manager_approved', approverEmail, 'claim', claimId, description || undefined);
   if (claim) {
     const adminApprovers = await getAdminApproverEmails();
-    const appUrl = normalizeAppUrl((await getCompanySettings())?.website || 'https://claimflow-pro-kappa.vercel.app');
+    const appUrl = getAppUrl();
     await createNotification(claimData.user_email, 'Claim Approved by Manager', `Your claim ${claimId} has been approved by the manager and forwarded to admin.`, 'success', claimId);
     await Promise.all(adminApprovers.map((email) =>
       createNotification(email, 'Claim Awaiting Admin Approval', `${claimData.submitted_by} claim ${claimId} is pending admin approval.`, 'info', claimId)
@@ -615,13 +1318,169 @@ export async function approveClaimAsManager(claimId: string, approverEmail: stri
       })
     ));
   }
+  */
 }
 
-export async function approveClaimAsAdmin(claimId: string, approverEmail: string, description?: string) {
+export async function approveClaimAsAdmin(claimId: string, approverEmail: string, descriptionOrReview?: string | AdminClaimReviewInput) {
+  const approver = await assertAdminReviewPermission(claimId, approverEmail);
   const { data: claim } = await supabase.from('claims').select('*').eq('claim_id', claimId).single();
   if (!claim) throw new Error('Claim not found');
 
   const c = claim as any;
+  const description = typeof descriptionOrReview === 'string' ? descriptionOrReview : undefined;
+  const reviewInput = typeof descriptionOrReview === 'object' && descriptionOrReview ? descriptionOrReview : undefined;
+  const adminRemarks = typeof descriptionOrReview === 'string' ? descriptionOrReview : reviewInput?.remarks;
+  const { data: detailedClaim } = await supabase.from('claims').select('*, expense_items(*)').eq('claim_id', claimId).single();
+  const claimData = (detailedClaim || c) as any;
+  const expenseItems = (claimData.expense_items || []) as any[];
+  const companySettings = await getCompanySettings();
+  const appUrl = getAppUrl(companySettings?.website);
+  const reviewedItems = mapExpenseReviewItems(
+    expenseItems,
+    reviewInput?.items?.length
+      ? reviewInput.items
+      : expenseItems.map((expense) => ({ expenseId: expense.id, approvedAmount: getExpenseOriginalTotal(expense), remarks: '' }))
+  );
+  const managerEmail = String(claimData.manager_email || '').trim().toLowerCase();
+  const finalApproverEmails = await getFinalApproverEmails(managerEmail, [approver.email]);
+  const requireManagerFinalApproval = companySettings?.require_manager_approval ?? true;
+  const shouldFinalizeDirectly = !requireManagerFinalApproval || finalApproverEmails.length === 0;
+
+  const updates: any = {
+    status: shouldFinalizeDirectly ? 'Approved' : 'Pending Manager Approval',
+    admin_approval_status: shouldFinalizeDirectly ? 'Approved' : 'Verified',
+    admin_email: approver.email,
+    admin_approval_date: new Date().toISOString(),
+    admin_description: buildReviewDescription(adminRemarks, {
+      approvedTotal: reviewedItems.totalApproved,
+      deductionTotal: reviewedItems.totalDeducted,
+      items: reviewedItems.updatedExpenses.map((expense) => ({
+        expenseId: String(expense.id || ''),
+        approvedAmount: clampMoney(parseMoney(expense.approved_amount)),
+        deductionAmount: clampMoney(parseMoney(expense.deduction_amount)),
+        remarks: String(expense.approval_remarks || '').trim(),
+      })).filter((item) => item.expenseId),
+    }),
+    admin_approved_total: reviewedItems.totalApproved,
+    admin_deduction_total: reviewedItems.totalDeducted,
+    manager_approval_status: shouldFinalizeDirectly ? (managerEmail ? 'Skipped' : 'Not Required') : 'Pending',
+    manager_approval_date: shouldFinalizeDirectly ? new Date().toISOString() : null,
+  };
+  const legacyUpdates: any = {
+    status: shouldFinalizeDirectly ? 'Approved' : 'Pending Manager Approval',
+    admin_email: approver.email,
+    admin_approval_date: new Date().toISOString(),
+    manager_approval_status: shouldFinalizeDirectly ? (managerEmail ? 'Skipped' : 'Not Required') : 'Pending',
+    manager_approval_date: shouldFinalizeDirectly ? new Date().toISOString() : null,
+  };
+  const minimalLegacyUpdates: any = {
+    status: shouldFinalizeDirectly ? 'Approved' : 'Pending Manager Approval',
+    admin_email: approver.email,
+    admin_approval_date: new Date().toISOString(),
+  };
+  const { error } = await supabase.from('claims').update(updates).eq('claim_id', claimId);
+  let usedLegacyFallback = false;
+  if (error) {
+    if (!isSchemaCacheColumnError(error)) throw error;
+    usedLegacyFallback = true;
+    const { error: legacyError } = await supabase.from('claims').update(legacyUpdates).eq('claim_id', claimId);
+    if (legacyError) {
+      if (!isSchemaCacheColumnError(legacyError)) throw legacyError;
+      const { error: minimalLegacyError } = await supabase.from('claims').update(minimalLegacyUpdates).eq('claim_id', claimId);
+      if (minimalLegacyError) throw minimalLegacyError;
+    }
+  }
+
+  if (reviewedItems.updatedExpenses.length > 0) {
+    try {
+      await persistExpenseReviewUpdates(reviewedItems.updatedExpenses);
+    } catch (expenseError) {
+      if (!usedLegacyFallback || !isSchemaCacheColumnError(expenseError)) throw expenseError;
+    }
+  }
+
+  await logAudit('claim_admin_verified', approverEmail, 'claim', claimId, buildAuditReviewDetails(adminRemarks, {
+    approvedTotal: reviewedItems.totalApproved,
+    deductionTotal: reviewedItems.totalDeducted,
+    items: reviewedItems.updatedExpenses.map((expense) => ({
+      expenseId: String(expense.id || ''),
+      approvedAmount: clampMoney(parseMoney(expense.approved_amount)),
+      deductionAmount: clampMoney(parseMoney(expense.deduction_amount)),
+      remarks: String(expense.approval_remarks || '').trim(),
+    })).filter((item) => item.expenseId),
+  }));
+
+  const originalAmount = clampMoney(expenseItems.reduce((sum, expense) => sum + getExpenseOriginalTotal(expense), 0));
+  if (shouldFinalizeDirectly) {
+    if (!(await hasExistingApprovedSettlement(claimId))) {
+      await createApprovedSettlementTransaction(claimId, claimData.user_email, approver.email, reviewedItems.totalApproved);
+    }
+
+    await createNotification(claimData.user_email, 'Claim Fully Approved', `Your claim ${claimId} has been approved. â‚¹${reviewedItems.totalApproved.toLocaleString('en-IN')} settled.`, 'success', claimId);
+    await sendEmailNotification('claim_approved', claimData.user_email, {
+      claim_no: claimData.claim_number || claimId,
+      total: reviewedItems.totalApproved,
+      approved_by: approver.email,
+      employee_name: claimData.user_name || claimData.submitted_by || 'there',
+      project_site: claimData.site_name,
+      original_total: originalAmount,
+      deduction_total: reviewedItems.totalDeducted,
+      remarks: adminRemarks || '',
+      items: reviewedItems.updatedExpenses.map((expense: any) => ({
+        category: expense.category,
+        projectCode: expense.project_code,
+        claimDate: expense.expense_date,
+        description: expense.description,
+        amount: getExpenseOriginalTotal(expense),
+        totalAmount: getExpenseOriginalTotal(expense),
+        approvedAmount: parseMoney(expense.approved_amount),
+        deductionAmount: parseMoney(expense.deduction_amount),
+        remarks: expense.approval_remarks || '',
+      })),
+      currency: 'â‚¹',
+      status: 'Fully Approved',
+    });
+    return;
+  }
+
+  await createNotification(claimData.user_email, 'Claim Verified by Admin', `Your claim ${claimId} has been verified and sent for final approval.`, 'success', claimId);
+  await Promise.all(finalApproverEmails.map((email) =>
+    createNotification(email, 'Claim Final Approval Required', `${claimData.submitted_by} claim ${claimId} is ready for final approval.`, 'info', claimId)
+  ));
+  await Promise.all(finalApproverEmails.map((email) => sendEmailNotification('claim_submitted_manager', email, {
+    claim_id: claimId,
+    claim_number: claimData.claim_number || claimId,
+    employee_name: claimData.submitted_by,
+    employee_email: claimData.user_email,
+    project_site: claimData.site_name,
+    primary_project_code: '',
+    submission_date: claimData.created_at,
+    manager_status: 'Pending Final Approval',
+    admin_status: 'Verified',
+    admin_remarks: adminRemarks || '',
+    total_amount: reviewedItems.totalApproved,
+    original_amount: originalAmount,
+    deduction_total: reviewedItems.totalDeducted,
+    currency: 'â‚¹',
+    items: reviewedItems.updatedExpenses.map((expense: any) => ({
+      category: expense.category,
+      projectCode: expense.project_code,
+      claimDate: expense.expense_date,
+      description: expense.description,
+      amountWithBill: parseMoney(expense.amount_with_bill),
+      amountWithoutBill: parseMoney(expense.amount_without_bill),
+      amount: getExpenseOriginalTotal(expense),
+      totalAmount: getExpenseOriginalTotal(expense),
+      approvedAmount: parseMoney(expense.approved_amount),
+      deductionAmount: parseMoney(expense.deduction_amount),
+      remarks: expense.approval_remarks || '',
+    })),
+    attachments: mapAttachmentEmailData(claimData.drive_file_ids || []),
+    review_link: buildClaimReviewLink(appUrl, claimId, 'manager'),
+  })));
+  return;
+  /*
+
   const amount = parseFloat(c.grand_total || (c.total_with_bill + c.total_without_bill) || 0);
 
   const updates: any = {
@@ -655,43 +1514,63 @@ export async function approveClaimAsAdmin(claimId: string, approverEmail: string
     currency: '₹',
     status: 'Fully Approved'
   });
+  */
 }
 
 export async function rejectClaim(claimId: string, reason: string, rejectorEmail: string, rejectorRole: string) {
+  const normalizedRejectorRole = String(rejectorRole || '').trim().toLowerCase();
+  const rejector = normalizedRejectorRole === 'manager'
+    ? await assertManagerFinalPermission(claimId, rejectorEmail)
+    : await assertAdminReviewPermission(claimId, rejectorEmail);
   const updates: any = { status: 'Rejected', rejection_reason: reason };
-  if (rejectorRole.toLowerCase() === 'manager') {
+  if (normalizedRejectorRole === 'manager') {
     updates.manager_approval_status = 'Rejected';
   } else {
-    updates.admin_email = rejectorEmail;
+    updates.admin_email = rejector.email;
     updates.admin_approval_date = new Date().toISOString();
+    updates.admin_approval_status = 'Rejected';
   }
 
   const { error } = await supabase.from('claims').update(updates).eq('claim_id', claimId);
-  if (error) throw error;
+  if (error) {
+    if (!isSchemaCacheColumnError(error)) throw error;
+    const legacyUpdates: any = { status: 'Rejected', rejection_reason: reason };
+    if (normalizedRejectorRole === 'manager') {
+      legacyUpdates.manager_approval_status = 'Rejected';
+    } else {
+      legacyUpdates.admin_email = rejector.email;
+      legacyUpdates.admin_approval_date = new Date().toISOString();
+    }
+    const { error: legacyError } = await supabase.from('claims').update(legacyUpdates).eq('claim_id', claimId);
+    if (legacyError) throw legacyError;
+  }
 
   // Refund transaction
   const { data: claim } = await supabase.from('claims').select('user_email, claim_number, grand_total, total_with_bill, total_without_bill').eq('claim_id', claimId).single();
   if (claim) {
     const displayClaimNo = (claim as any).claim_number || claimId;
     const amount = parseFloat((claim as any).grand_total || ((claim as any).total_with_bill + (claim as any).total_without_bill) || 0);
+    const { data: existingRefund } = await supabase.from('transactions').select('id').eq('reference_id', claimId).eq('type', 'claim_rejected_refund').maybeSingle();
     const currentBalance = await getCurrentBalance((claim as any).user_email);
-    await supabase.from('transactions').insert({
-      user_email: (claim as any).user_email,
-      admin_email: rejectorEmail,
-      type: 'claim_rejected_refund',
-      reference_id: claimId,
-      credit: amount,
-      debit: 0,
-      balance_after: currentBalance + amount,
-      description: `Claim ${displayClaimNo} rejected - refund`,
-    });
+    if (!existingRefund) {
+      await supabase.from('transactions').insert({
+        user_email: (claim as any).user_email,
+        admin_email: rejector.email,
+        type: 'claim_rejected_refund',
+        reference_id: claimId,
+        credit: amount,
+        debit: 0,
+        balance_after: currentBalance + amount,
+        description: `Claim ${displayClaimNo} rejected - refund`,
+      });
+    }
 
-    await logAudit('claim_rejected', rejectorEmail, 'claim', claimId, `Reason: ${reason}`);
+    await logAudit('claim_rejected', rejector.email, 'claim', claimId, `Reason: ${reason}`);
     await createNotification((claim as any).user_email, 'Claim Rejected', `Your claim ${displayClaimNo} was rejected. Reason: ${reason}`, 'error', claimId);
     await sendEmailNotification('claim_rejected', (claim as any).user_email, {
       claim_no: displayClaimNo,
       total: amount,
-      rejected_by: rejectorEmail,
+      rejected_by: rejector.email,
       reason,
       currency: '₹',
     });
@@ -723,35 +1602,106 @@ export async function getClaimsHistory(userEmail: string, userRole: string, filt
 
   query = query.order('created_at', { ascending: false });
   const result = await query;
-  return (result.data || []).map((c: any) => ({
+  const claims = (result.data || []) as any[];
+  const recoveryMap = await getLegacyAdminReviewRecoveryMap(
+    claims.map((claim) => ({
+      claimId: claim.claim_id,
+      submittedTotal: getClaimSubmittedTotal(claim),
+    }))
+  );
+
+  return claims.map((c: any) => {
+    const reviewTotals = getExpenseReviewTotals(c.expense_items || []);
+    const legacyRecovery = recoveryMap.get(String(c.claim_id || '').trim()) || null;
+    const adminReview = applyLegacyAdminReviewRecovery(
+      c,
+      getClaimAdminReviewSnapshot(c),
+      legacyRecovery
+    );
+    const parsedReviewDescription = parseReviewMetadata(c.admin_description);
+    const legacySingleExpenseReview = getLegacySingleExpenseReview(c, c.expense_items || [], adminReview);
+    return {
+    reviewTotals,
     claimId: c.claim_number || c.claim_id,
     claimIdInternal: c.claim_id,
     date: c.created_at,
     submittedBy: c.submitted_by,
     userEmail: c.user_email,
     site: c.site_name,
-    amount: parseFloat(c.grand_total || (c.total_with_bill + c.total_without_bill) || 0),
+    amount: getResolvedClaimAmount(c, adminReview),
     totalWithBill: parseFloat(c.total_with_bill || 0),
     totalWithoutBill: parseFloat(c.total_without_bill || 0),
     status: c.status,
     rejectionReason: c.rejection_reason,
     fileIds: c.drive_file_ids || [],
-    expenses: (c.expense_items || []).map((e: any) => ({
-      category: e.category,
-      projectCode: e.project_code,
-      claimDate: e.expense_date,
-      description: e.description,
-      amountWithBill: parseFloat(e.amount_with_bill || 0),
-      amountWithoutBill: parseFloat(e.amount_without_bill || 0),
-      amount: parseFloat(e.amount_with_bill || 0) + parseFloat(e.amount_without_bill || 0),
-    })),
-  }));
+    adminApprovalStatus: adminReview.status,
+    adminApprovalDate: c.admin_approval_date,
+    adminApprovedTotal: adminReview.approvedTotal,
+    adminDeductionTotal: adminReview.deductionTotal,
+    adminDescription: parsedReviewDescription.remarks || legacyRecovery?.remarks || '',
+    expenses: (c.expense_items || []).map((e: any) => {
+      const metadataReview = getMetadataReviewItem(c, e.id);
+      const legacyRecoveryItem = getLegacyRecoveryItem(legacyRecovery, String(e.id || ''));
+      const review = getExpenseReviewState(e);
+      const hasRecoveredLineItemReview = Boolean(metadataReview || legacyRecoveryItem || legacySingleExpenseReview || review.hasPersistedReview);
+      const approvedAmount = metadataReview
+        ? metadataReview.approvedAmount
+        : legacyRecoveryItem
+          ? legacyRecoveryItem.approvedAmount
+        : legacySingleExpenseReview
+          ? legacySingleExpenseReview.approvedAmount
+          : adminReview.hasAdminReview
+            ? null
+            : review.approvedAmount;
+      const deductionAmount = metadataReview
+        ? metadataReview.deductionAmount
+        : legacyRecoveryItem
+          ? legacyRecoveryItem.deductionAmount
+        : legacySingleExpenseReview
+          ? legacySingleExpenseReview.deductionAmount
+          : adminReview.hasAdminReview
+            ? null
+            : review.deductionAmount;
+      const hasPersistedReview = hasRecoveredLineItemReview;
+      return {
+        expenseId: e.id,
+        category: e.category,
+        projectCode: e.project_code,
+        claimDate: e.expense_date,
+        description: e.description,
+        amountWithBill: parseFloat(e.amount_with_bill || 0),
+        amountWithoutBill: parseFloat(e.amount_without_bill || 0),
+        amount: getExpenseOriginalTotal(e),
+        approvedAmount,
+        deductionAmount,
+        adminApprovedAmount: hasPersistedReview ? approvedAmount : null,
+        adminDeductionAmount: hasPersistedReview ? deductionAmount : null,
+        hasPersistedReview,
+        approvalRemarks: metadataReview ? metadataReview.remarks : legacyRecoveryItem ? legacyRecoveryItem.remarks : e.approval_remarks,
+      };
+    }),
+  };
+  });
 }
 
 export async function getClaimById(claimId: string) {
   const { data } = await supabase.from('claims').select('*, expense_items(*)').eq('claim_id', claimId).single();
   if (!data) return null;
   const c = data as any;
+  const recoveryMap = await getLegacyAdminReviewRecoveryMap([
+    {
+      claimId: c.claim_id,
+      submittedTotal: getClaimSubmittedTotal(c),
+    },
+  ]);
+  const legacyRecovery = recoveryMap.get(String(c.claim_id || '').trim()) || null;
+  const adminReview = applyLegacyAdminReviewRecovery(
+    c,
+    getClaimAdminReviewSnapshot(c),
+    legacyRecovery
+  );
+  const parsedReviewDescription = parseReviewMetadata(c.admin_description);
+  const legacySingleExpenseReview = getLegacySingleExpenseReview(c, c.expense_items || [], adminReview);
   return {
     claimId: c.claim_number || c.claim_id,
     claimIdInternal: c.claim_id,
@@ -759,26 +1709,62 @@ export async function getClaimById(claimId: string) {
     submittedBy: c.submitted_by,
     userEmail: c.user_email,
     site: c.site_name,
-    amount: parseFloat(c.grand_total || (c.total_with_bill + c.total_without_bill) || 0),
+    amount: getResolvedClaimAmount(c, adminReview),
     totalWithBill: parseFloat(c.total_with_bill || 0),
     totalWithoutBill: parseFloat(c.total_without_bill || 0),
     status: c.status,
+    fileIds: c.drive_file_ids || [],
     managerEmail: c.manager_email,
     managerApprovalStatus: c.manager_approval_status,
     managerApprovalDate: c.manager_approval_date,
     adminEmail: c.admin_email,
     adminApprovalDate: c.admin_approval_date,
+    adminApprovalStatus: adminReview.status,
+    adminApprovedTotal: adminReview.approvedTotal,
+    adminDeductionTotal: adminReview.deductionTotal,
+    adminDescription: parsedReviewDescription.remarks || legacyRecovery?.remarks || '',
     rejectionReason: c.rejection_reason,
-    expenses: (c.expense_items || []).map((e: any) => ({
-      category: e.category,
-      projectCode: e.project_code,
-      claimDate: e.expense_date,
-      description: e.description,
-      amountWithBill: parseFloat(e.amount_with_bill || 0),
-      amountWithoutBill: parseFloat(e.amount_without_bill || 0),
-      amount: parseFloat(e.amount_with_bill || 0) + parseFloat(e.amount_without_bill || 0),
-    })),
-    fileIds: c.drive_file_ids || [],
+    expenses: (c.expense_items || []).map((e: any) => {
+      const metadataReview = getMetadataReviewItem(c, e.id);
+      const legacyRecoveryItem = getLegacyRecoveryItem(legacyRecovery, String(e.id || ''));
+      const review = getExpenseReviewState(e);
+      const hasRecoveredLineItemReview = Boolean(metadataReview || legacyRecoveryItem || legacySingleExpenseReview || review.hasPersistedReview);
+      const approvedAmount = metadataReview
+        ? metadataReview.approvedAmount
+        : legacyRecoveryItem
+          ? legacyRecoveryItem.approvedAmount
+        : legacySingleExpenseReview
+          ? legacySingleExpenseReview.approvedAmount
+          : adminReview.hasAdminReview
+            ? null
+            : review.approvedAmount;
+      const deductionAmount = metadataReview
+        ? metadataReview.deductionAmount
+        : legacyRecoveryItem
+          ? legacyRecoveryItem.deductionAmount
+        : legacySingleExpenseReview
+          ? legacySingleExpenseReview.deductionAmount
+          : adminReview.hasAdminReview
+            ? null
+            : review.deductionAmount;
+      const hasPersistedReview = hasRecoveredLineItemReview;
+      return {
+        expenseId: e.id,
+        category: e.category,
+        projectCode: e.project_code,
+        claimDate: e.expense_date,
+        description: e.description,
+        amountWithBill: parseFloat(e.amount_with_bill || 0),
+        amountWithoutBill: parseFloat(e.amount_without_bill || 0),
+        amount: getExpenseOriginalTotal(e),
+        approvedAmount,
+        deductionAmount,
+        adminApprovedAmount: hasPersistedReview ? approvedAmount : null,
+        adminDeductionAmount: hasPersistedReview ? deductionAmount : null,
+        hasPersistedReview,
+        approvalRemarks: metadataReview ? metadataReview.remarks : legacyRecoveryItem ? legacyRecoveryItem.remarks : e.approval_remarks,
+      };
+    }),
   };
 }
 
@@ -852,12 +1838,14 @@ export async function getAllUsers() {
 
 export async function createUser(newUser: { email: string; password: string; name: string; role: string; advance: number; manager: string }) {
   const email = newUser.email.trim().toLowerCase();
+  const role = (newUser.role || 'User').trim();
 
   // Check if user exists using maybeSingle to avoid 406 errors
   const { data: existing } = await supabase.from('users').select('email').eq('email', email).maybeSingle();
   if (existing) throw new Error('Email already exists.');
 
-  const managerEmail = newUser.manager?.trim().toLowerCase() || null;
+  const normalizedManager = newUser.manager?.trim().toLowerCase();
+  const managerEmail = role === 'User' && normalizedManager && normalizedManager !== 'none' ? normalizedManager : null;
   if (managerEmail) {
     const { data: mgr } = await supabase.from('users').select('email').eq('email', managerEmail).maybeSingle();
     if (!mgr) throw new Error('Manager email not found.');
@@ -867,7 +1855,7 @@ export async function createUser(newUser: { email: string; password: string; nam
     email,
     password_hash: hashPassword(newUser.password),
     name: newUser.name.trim(),
-    role: newUser.role || 'User',
+    role,
     advance_amount: newUser.advance || 0,
     manager_email: managerEmail,
     active: true,
@@ -896,7 +1884,7 @@ export async function createUser(newUser: { email: string; password: string; nam
     advance: newUser.advance,
     email,
     tempPassword: newUser.password,
-    loginUrl: settings?.website || 'https://claimflow-pro-kappa.vercel.app',
+    loginUrl: DEFAULT_APP_URL,
     userGuideUrl: '',
   });
   return { ok: true, message: `User ${newUser.name} created successfully.` };
@@ -905,10 +1893,14 @@ export async function createUser(newUser: { email: string; password: string; nam
 export async function updateUser(payload: { originalEmail: string; name?: string; email?: string; role?: string; password?: string; manager?: string }) {
   const oldEmail = payload.originalEmail.trim().toLowerCase();
   const updates: any = {};
+  const nextRole = (payload.role || '').trim();
   if (payload.name) updates.name = payload.name;
-  if (payload.role) updates.role = payload.role;
+  if (payload.role) updates.role = nextRole;
   if (payload.password) updates.password_hash = hashPassword(payload.password);
-  if (payload.manager !== undefined) updates.manager_email = payload.manager || null;
+  if (payload.manager !== undefined) {
+    const normalizedManager = payload.manager?.trim().toLowerCase();
+    updates.manager_email = nextRole === 'User' && normalizedManager && normalizedManager !== 'none' ? normalizedManager : null;
+  }
   if (payload.email && payload.email.toLowerCase() !== oldEmail) updates.email = payload.email.toLowerCase();
 
   const { error } = await supabase.from('users').update(updates).eq('email', oldEmail);
@@ -942,7 +1934,7 @@ export async function addUserAdvance(userEmail: string, amount: number, adminEma
 export async function getUserBalanceSummary(userEmail: string, userRole: string) {
   const role = userRole.toLowerCase();
   const { data: users } = await supabase.from('users').select('*');
-  const { data: claims } = await supabase.from('claims').select('*');
+  const { data: claims } = await supabase.from('claims').select('*, expense_items(*)');
 
   if (!users) return [];
 
@@ -960,7 +1952,7 @@ export async function getUserBalanceSummary(userEmail: string, userRole: string)
     
     (claims || []).forEach((c: any) => {
       if (c.user_email?.toLowerCase() === uEmail) {
-        const amt = parseFloat(c.grand_total || (c.total_with_bill + c.total_without_bill) || 0);
+        const amt = getClaimTotal(c);
         const status = String(c.status || '').toLowerCase();
         total += amt;
         if (status.includes('pending')) pending += amt;
@@ -1143,3 +2135,4 @@ export async function getDashboardChartData(userEmail: string, userRole: string)
     byStatus: Object.entries(statusCount).map(([name, value]) => ({ name, value })),
   };
 }
+

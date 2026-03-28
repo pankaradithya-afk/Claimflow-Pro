@@ -1,7 +1,7 @@
 const DEFAULT_COMPANY_NAME = 'Irrigation Products International Pvt Ltd';
 const DEFAULT_SUBTITLE = 'Claims Management System';
 const DEFAULT_SUPPORT_EMAIL = 'projects@ipi-india.com';
-const DEFAULT_APP_URL = 'https://claimflow-pro-kappa.vercel.app';
+const DEFAULT_APP_URL = 'https://claimflow-pro-main.vercel.app';
 const DEFAULT_CURRENCY = '&#8377;';
 
 type Attachment = string | { name?: string; url?: string };
@@ -23,18 +23,18 @@ interface KeyValueItem {
   html?: boolean;
 }
 
-const shellStyles = 'max-width: 920px; margin: 0 auto; padding: 20px; background: #f8fafc;';
-const cardStyles = 'background: #ffffff; border: 1px solid #dbe4ee; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);';
-const heroStyles = 'padding: 24px 28px; background: linear-gradient(135deg, #0f766e 0%, #0284c7 100%); color: #ffffff;';
-const bodyStyles = 'padding: 28px; font-family: Arial, Helvetica, sans-serif; color: #1f2937; line-height: 1.65; font-size: 14px;';
-const footerStyles = 'padding: 18px 28px 26px; border-top: 1px solid #e5e7eb; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #64748b; background: #f8fafc;';
-const buttonSecondary = 'display: inline-block; padding: 12px 18px; margin: 0 12px 12px 0; border-radius: 10px; font-weight: 700; text-decoration: none; color: #0f172a; font-size: 13px; background: #e2e8f0; border: 1px solid #cbd5e1;';
-const buttonDanger = 'display: inline-block; padding: 12px 18px; margin: 0 12px 12px 0; border-radius: 10px; font-weight: 700; text-decoration: none; color: #ffffff; font-size: 13px; background: #dc2626;';
-const buttonSuccess = 'display: inline-block; padding: 12px 18px; margin: 0 12px 12px 0; border-radius: 10px; font-weight: 700; text-decoration: none; color: #ffffff; font-size: 13px; background: #16a34a;';
-const tableStyles = 'width: 100%; border-collapse: collapse; margin: 18px 0 6px; background: #ffffff; border: 1px solid #dbe4ee; table-layout: fixed;';
-const thStyles = 'background: #eff6ff; padding: 10px; border: 1px solid #dbe4ee; text-align: left; font-size: 13px; color: #0f172a; vertical-align: top;';
-const tdStyles = 'padding: 10px; border: 1px solid #dbe4ee; font-size: 13px; vertical-align: top;';
-const softCardStyles = 'padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #0284c7; border-radius: 12px; margin: 16px 0;';
+const shellStyles = 'max-width: 860px; margin: 0 auto; padding: 12px; background: #f8fafc;';
+const cardStyles = 'background: #ffffff; border: 1px solid #dbe4ee; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);';
+const heroStyles = 'padding: 18px 22px; background: linear-gradient(135deg, #0f766e 0%, #0284c7 100%); color: #ffffff;';
+const bodyStyles = 'padding: 18px 22px 20px; font-family: Arial, Helvetica, sans-serif; color: #1f2937; line-height: 1.45; font-size: 13px;';
+const footerStyles = 'padding: 14px 22px 18px; border-top: 1px solid #e5e7eb; font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #64748b; background: #f8fafc;';
+const buttonSecondary = 'display: inline-block; padding: 9px 14px; margin: 0 8px 8px 0; border-radius: 8px; font-weight: 700; text-decoration: none; color: #0f172a; font-size: 12px; background: #e2e8f0; border: 1px solid #cbd5e1;';
+const buttonDanger = 'display: inline-block; padding: 9px 14px; margin: 0 8px 8px 0; border-radius: 8px; font-weight: 700; text-decoration: none; color: #ffffff; font-size: 12px; background: #dc2626;';
+const buttonSuccess = 'display: inline-block; padding: 9px 14px; margin: 0 8px 8px 0; border-radius: 8px; font-weight: 700; text-decoration: none; color: #ffffff; font-size: 12px; background: #16a34a;';
+const tableStyles = 'width: 100%; border-collapse: collapse; margin: 12px 0 4px; background: #ffffff; border: 1px solid #dbe4ee; table-layout: fixed;';
+const thStyles = 'background: #eff6ff; padding: 7px 8px; border: 1px solid #dbe4ee; text-align: left; font-size: 11px; color: #0f172a; vertical-align: top;';
+const tdStyles = 'padding: 7px 8px; border: 1px solid #dbe4ee; font-size: 12px; line-height: 1.35; vertical-align: top;';
+const softCardStyles = 'padding: 10px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-left: 3px solid #0284c7; border-radius: 10px; margin: 10px 0;';
 
 function escapeHtml(value: unknown) {
   return String(value ?? '')
@@ -105,10 +105,10 @@ function brand(data: BrandData) {
 
 function sectionTitle(title: string, subtitle?: string) {
   return `
-    <div style="margin: 0 0 18px 0;">
-      <div style="display: inline-block; padding: 6px 10px; border-radius: 999px; background: #dbeafe; color: #0369a1; font-size: 12px; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase;">System Notification</div>
-      <h2 style="margin: 14px 0 6px; font-size: 22px; color: #0f172a; line-height: 1.3;">${safeText(title)}</h2>
-      ${subtitle ? `<p style="margin: 0; color: #475569; font-size: 14px;">${safeText(subtitle)}</p>` : ''}
+    <div style="margin: 0 0 12px 0;">
+      <div style="display: inline-block; padding: 4px 8px; border-radius: 999px; background: #dbeafe; color: #0369a1; font-size: 10px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase;">System Notification</div>
+      <h2 style="margin: 10px 0 4px; font-size: 20px; color: #0f172a; line-height: 1.25;">${safeText(title)}</h2>
+      ${subtitle ? `<p style="margin: 0; color: #475569; font-size: 12px;">${safeText(subtitle)}</p>` : ''}
     </div>
   `;
 }
@@ -116,12 +116,12 @@ function sectionTitle(title: string, subtitle?: string) {
 function infoGrid(items: KeyValueItem[]) {
   if (!items.length) return '';
   const columns = items.map((item) => `
-    <div style="flex: 1 1 220px; min-width: 220px; padding: 14px 16px; border: 1px solid #dbe4ee; border-radius: 12px; background: #f8fafc;">
-      <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; font-weight: 700; margin-bottom: 6px;">${safeText(item.label)}</div>
-      <div style="font-size: 14px; color: #0f172a; font-weight: 700; word-break: break-word;">${item.html ? item.value : safeText(item.value)}</div>
+    <div style="flex: 1 1 170px; min-width: 170px; padding: 10px 12px; border: 1px solid #dbe4ee; border-radius: 10px; background: #f8fafc;">
+      <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; font-weight: 700; margin-bottom: 4px;">${safeText(item.label)}</div>
+      <div style="font-size: 12px; color: #0f172a; font-weight: 700; word-break: break-word; line-height: 1.35;">${item.html ? item.value : safeText(item.value)}</div>
     </div>
   `).join('');
-  return `<div style="display: flex; flex-wrap: wrap; gap: 12px; margin: 18px 0;">${columns}</div>`;
+  return `<div style="display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0;">${columns}</div>`;
 }
 
 function statusPill(label: string, tone: 'info' | 'success' | 'warning' | 'danger' = 'info') {
@@ -142,7 +142,7 @@ function renderButtons(buttons: Array<{ href?: string; label: string; tone?: 'su
       return `<a href="${button.href}" style="${style}">${safeText(button.label)}</a>`;
     })
     .join('');
-  return items ? `<div style="margin: 22px 0 8px;">${items}</div>` : '';
+  return items ? `<div style="margin: 14px 0 4px;">${items}</div>` : '';
 }
 
 function renderAttachments(attachments?: Attachment[]) {
@@ -153,7 +153,7 @@ function renderAttachments(attachments?: Attachment[]) {
     }
     if (attachment.url) {
       const label = attachment.name || 'Open attachment';
-      return `<li style="margin: 8px 0;"><a href="${safeLink(attachment.url)}" style="color: #0284c7; text-decoration: underline; font-weight: 700;">${safeText(label)}</a><div style="font-size: 12px; color: #64748b;">Open or download this file</div></li>`;
+      return `<li style="margin: 6px 0;"><a href="${safeLink(attachment.url)}" style="color: #0284c7; text-decoration: underline; font-weight: 700;">${safeText(label)}</a><div style="font-size: 11px; color: #64748b;">Open or download this file</div></li>`;
     }
     return `<li style="margin: 4px 0;">${safeText(attachment.name || '')}</li>`;
   }).join('');
@@ -323,14 +323,13 @@ export function claimSubmittedUserTemplate(data: {
   };
 }
 
-export function claimSubmittedManagerTemplate(data: {
+export function claimSubmittedAdminTemplate(data: {
   claim_number: string;
   employee_name: string;
   employee_email?: string;
   project_site?: string;
   primary_project_code?: string;
   submission_date?: string;
-  manager_status?: string;
   admin_status?: string;
   items: Array<{
     category: string;
@@ -344,60 +343,162 @@ export function claimSubmittedManagerTemplate(data: {
   }>;
   total_amount: number;
   attachments?: Attachment[];
-  approve_link: string;
-  reject_link: string;
+  review_link: string;
 } & BrandData): { subject: string; html: string } {
   const info = brand(data);
   const rows = data.items.map((item) => `
     <tr>
-      <td style="${tdStyles}; width: 22%; word-break: break-word;">${safeText(item.category)}</td>
-      <td style="${tdStyles}; width: 18%; word-break: break-word;">${safeText(item.projectCode || '')}</td>
-      <td style="${tdStyles}; width: 16%; white-space: nowrap;">${safeText(item.claimDate || '')}</td>
-      <td style="${tdStyles}; width: 24%; word-break: break-word;">${safeText(item.description)}</td>
-      <td style="${tdStyles}; text-align: right;">${fmtAmount(item.amountWithBill, info.currency)}</td>
-      <td style="${tdStyles}; text-align: right;">${fmtAmount(item.amountWithoutBill, info.currency)}</td>
+      <td style="${tdStyles}; width: 24%; word-break: break-word;">
+        <div style="font-weight: 700; color: #0f172a;">${safeText(item.category)}</div>
+        ${item.projectCode ? `<div style="margin-top: 2px; font-size: 11px; color: #64748b;">${safeText(item.projectCode)}</div>` : ''}
+      </td>
+      <td style="${tdStyles}; width: 14%; white-space: nowrap;">${safeText(item.claimDate || '')}</td>
+      <td style="${tdStyles}; width: 46%; word-break: break-word;">${safeText(item.description)}</td>
       <td style="${tdStyles}; text-align: right; font-weight: 700;">${fmtAmount(item.totalAmount ?? item.amount, info.currency)}</td>
     </tr>
   `).join('');
   const body = `
-    <p style="margin-top: 0;">A claim has been submitted and requires approval.</p>
+    <p style="margin-top: 0;">A new claim is waiting for your review in the <strong>Admin Approval</strong> section.</p>
     ${infoGrid([
       { label: 'Claim Number', value: data.claim_number },
       { label: 'Submitted By', value: data.employee_name },
       { label: 'Submission Date', value: fmtDate(data.submission_date) },
       { label: 'Project Site', value: data.project_site || '' },
-      { label: 'Primary Project Code', value: data.primary_project_code || '' },
-      { label: 'Manager Approval', value: data.manager_status || 'Pending' },
-      { label: 'Admin Approval', value: data.admin_status || 'Pending' },
+      { label: 'Admin Status', value: data.admin_status || 'Pending Review' },
     ])}
+    ${data.primary_project_code ? infoGrid([
+      { label: 'Primary Project Code', value: data.primary_project_code },
+    ]) : ''}
     <div style="${softCardStyles}">
-      <p style="margin: 0 0 8px 0; font-weight: 700; color: #0f172a;">Quick actions</p>
-      <p style="margin: 0; color: #475569;">Approve or reject this claim from the links below.</p>
+      <p style="margin: 0 0 8px 0; font-weight: 700; color: #0f172a;">What the admin should do</p>
+      <div style="font-size: 13px; color: #475569; margin-bottom: 8px;">Open the claim, review each line item, enter the approved amount or deduction amount, add remarks where needed, then send it for final approval.</div>
+      <div style="font-size: 13px; color: #475569;">Use the button below, or open the <strong>Admin Approval</strong> page in the app sidebar.</div>
     </div>
     <table style="${tableStyles}">
       <thead>
         <tr>
-          <th style="${claimTableHeaderCell(thStyles, '22%')}">Category</th>
-          <th style="${claimTableHeaderCell(thStyles, '18%')}">Project Code</th>
-          <th style="${claimTableHeaderCell(thStyles, '16%')}">Claim Date</th>
-          <th style="${claimTableHeaderCell(thStyles, '24%')}">Description</th>
-          <th style="${claimTableHeaderCell(thStyles, '6%')}">With Bill</th>
-          <th style="${claimTableHeaderCell(thStyles, '6%')}">Without Bill</th>
-          <th style="${claimTableHeaderCell(thStyles, '8%')}">Total</th>
+          <th style="${claimTableHeaderCell(thStyles, '24%')}">Category / Project</th>
+          <th style="${claimTableHeaderCell(thStyles, '14%')}">Date</th>
+          <th style="${claimTableHeaderCell(thStyles, '46%')}">Description</th>
+          <th style="${claimTableHeaderCell(thStyles, '16%')}">Original Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+        <tr>
+          <td colspan="3" style="${tdStyles}; text-align: right; font-weight: 700;">Total</td>
+          <td style="${tdStyles}; text-align: right; font-weight: 700;">${fmtAmount(data.total_amount, info.currency)}</td>
+        </tr>
+      </tbody>
+    </table>
+    ${renderAttachments(data.attachments)}
+    ${renderButtons([
+      { href: safeLink(data.review_link), label: 'Open Admin Approval', tone: 'success' },
+    ])}
+  `;
+  return {
+    subject: `Admin Review Required - ${data.claim_number}`,
+    html: wrapEmail('Admin Review Required', body, info),
+  };
+}
+
+export function claimSubmittedManagerTemplate(data: {
+  claim_number: string;
+  employee_name: string;
+  employee_email?: string;
+  project_site?: string;
+  primary_project_code?: string;
+  submission_date?: string;
+  manager_status?: string;
+  admin_status?: string;
+  admin_remarks?: string;
+  original_amount?: number;
+  deduction_total?: number;
+  items: Array<{
+    category: string;
+    projectCode?: string;
+    claimDate?: string;
+    description: string;
+    amountWithBill?: number;
+    amountWithoutBill?: number;
+    totalAmount?: number;
+    amount?: number;
+    approvedAmount?: number;
+    deductionAmount?: number;
+    remarks?: string;
+  }>;
+  total_amount: number;
+  attachments?: Attachment[];
+  review_link: string;
+} & BrandData): { subject: string; html: string } {
+  const info = brand(data);
+  const rows = data.items.map((item) => `
+    <tr>
+      <td style="${tdStyles}; width: 24%; word-break: break-word;">
+        <div style="font-weight: 700; color: #0f172a;">${safeText(item.category)}</div>
+        ${item.projectCode ? `<div style="margin-top: 2px; font-size: 11px; color: #64748b;">${safeText(item.projectCode)}</div>` : ''}
+      </td>
+      <td style="${tdStyles}; width: 14%; white-space: nowrap;">${safeText(item.claimDate || '')}</td>
+      <td style="${tdStyles}; width: 30%; word-break: break-word;">
+        <div>${safeText(item.description)}</div>
+        ${item.remarks ? `<div style="margin-top: 4px; font-size: 11px; color: #92400e;">Admin note: ${safeText(item.remarks)}</div>` : ''}
+      </td>
+      <td style="${tdStyles}; text-align: right;">${fmtAmount(item.totalAmount ?? item.amount, info.currency)}</td>
+      <td style="${tdStyles}; text-align: right;">${fmtAmount(item.approvedAmount ?? item.totalAmount ?? item.amount, info.currency)}</td>
+      <td style="${tdStyles}; text-align: right;">${fmtAmount(item.deductionAmount, info.currency)}</td>
+    </tr>
+  `).join('');
+  const adminSummaryLine = (data.deduction_total != null || data.admin_remarks)
+    ? `Admin review is complete. Final approval is now required for ${fmtAmount(data.total_amount, info.currency)} after a deduction of ${fmtAmount(data.deduction_total || 0, info.currency)}.`
+    : 'Admin review is complete. Final approval is now required.';
+  const body = `
+    <p style="margin-top: 0;">${safeText(adminSummaryLine)}</p>
+    ${infoGrid([
+      { label: 'Claim Number', value: data.claim_number },
+      { label: 'Submitted By', value: data.employee_name },
+      { label: 'Submission Date', value: fmtDate(data.submission_date) },
+      { label: 'Project Site', value: data.project_site || '' },
+      { label: 'Final Approval', value: data.manager_status || 'Pending Final Approval' },
+      { label: 'Admin Review', value: data.admin_status || 'Verified' },
+    ])}
+    ${data.primary_project_code ? infoGrid([
+      { label: 'Primary Project Code', value: data.primary_project_code },
+    ]) : ''}
+    ${(data.admin_remarks || data.deduction_total != null) ? `
+      <div style="${softCardStyles}; border-left-color: #f59e0b;">
+        <p style="margin: 0 0 6px 0; font-weight: 700; color: #0f172a;">Admin review summary</p>
+        <p style="margin: 0 0 4px 0; color: #475569;">Approved total: <strong>${fmtAmount(data.total_amount, info.currency)}</strong></p>
+        ${data.original_amount != null ? `<p style="margin: 0 0 4px 0; color: #475569;">Original total: <strong>${fmtAmount(data.original_amount, info.currency)}</strong></p>` : ''}
+        ${data.deduction_total != null ? `<p style="margin: 0 0 4px 0; color: #475569;">Deduction total: <strong>${fmtAmount(data.deduction_total, info.currency)}</strong></p>` : ''}
+        ${data.admin_remarks ? `<p style="margin: 6px 0 0; color: #0f172a;">Remarks: ${safeText(data.admin_remarks)}</p>` : ''}
+      </div>
+    ` : ''}
+    <div style="${softCardStyles}">
+      <p style="margin: 0 0 6px 0; font-weight: 700; color: #0f172a;">Review in the app</p>
+      <p style="margin: 0; color: #475569;">Open the claim in the app, sign in with your approver account, then complete final approval or rejection there.</p>
+    </div>
+    <table style="${tableStyles}">
+      <thead>
+        <tr>
+          <th style="${claimTableHeaderCell(thStyles, '24%')}">Category / Project</th>
+          <th style="${claimTableHeaderCell(thStyles, '14%')}">Date</th>
+          <th style="${claimTableHeaderCell(thStyles, '30%')}">Description</th>
+          <th style="${claimTableHeaderCell(thStyles, '11%')}">Original</th>
+          <th style="${claimTableHeaderCell(thStyles, '11%')}">Approved</th>
+          <th style="${claimTableHeaderCell(thStyles, '10%')}">Deduction</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
     </table>
-    <p style="margin: 16px 0 0;"><strong>Total Amount:</strong> ${fmtAmount(data.total_amount, info.currency)}</p>
+    <p style="margin: 10px 0 0;"><strong>Final approved total:</strong> ${fmtAmount(data.total_amount, info.currency)}</p>
     ${renderAttachments(data.attachments)}
     ${renderButtons([
-      { href: safeLink(data.approve_link), label: 'Approve', tone: 'success' },
-      { href: safeLink(data.reject_link), label: 'Reject', tone: 'danger' },
+      { href: safeLink(data.review_link), label: 'Open Final Review', tone: 'success' },
     ])}
   `;
   return {
-    subject: `Action Required - ${data.claim_number}`,
-    html: wrapEmail('Claim Approval Required', body, info),
+    subject: `Final Approval Required - ${data.claim_number}`,
+    html: wrapEmail('Final Approval Required', body, info),
   };
 }
 
@@ -407,21 +508,74 @@ export function claimApprovedTemplate(data: {
   approved_by: string;
   employee_name?: string;
   status?: string;
+  original_total?: number;
+  deduction_total?: number;
+  remarks?: string;
+  project_site?: string;
+  items?: Array<{
+    category?: string;
+    projectCode?: string;
+    claimDate?: string;
+    description?: string;
+    totalAmount?: number;
+    amount?: number;
+    approvedAmount?: number;
+    deductionAmount?: number;
+    remarks?: string;
+  }>;
 } & BrandData): { subject: string; html: string } {
   const info = brand(data);
+  const rows = (data.items || []).map((item) => `
+    <tr>
+      <td style="${tdStyles}; width: 24%; word-break: break-word;">
+        <div style="font-weight: 700; color: #0f172a;">${safeText(item.category || '')}</div>
+        ${item.projectCode ? `<div style="margin-top: 2px; font-size: 11px; color: #64748b;">${safeText(item.projectCode)}</div>` : ''}
+      </td>
+      <td style="${tdStyles}; width: 14%; white-space: nowrap;">${safeText(item.claimDate || '')}</td>
+      <td style="${tdStyles}; width: 30%; word-break: break-word;">
+        <div>${safeText(item.description || '')}</div>
+        ${item.remarks ? `<div style="margin-top: 4px; font-size: 11px; color: #92400e;">Review note: ${safeText(item.remarks)}</div>` : ''}
+      </td>
+      <td style="${tdStyles}; text-align: right;">${fmtAmount(item.totalAmount ?? item.amount, info.currency)}</td>
+      <td style="${tdStyles}; text-align: right;">${fmtAmount(item.approvedAmount ?? item.totalAmount ?? item.amount, info.currency)}</td>
+      <td style="${tdStyles}; text-align: right;">${fmtAmount(item.deductionAmount, info.currency)}</td>
+    </tr>
+  `).join('');
   const body = `
     <p style="margin-top: 0;">Dear ${safeText(data.employee_name || 'User')},</p>
     <p>Your claim has been approved and the workflow has been completed.</p>
     ${infoGrid([
       { label: 'Claim ID', value: data.claim_no },
       { label: 'Approved By', value: data.approved_by },
-      { label: 'Claim Amount', value: fmtAmount(data.total, info.currency), html: true },
+      { label: 'Project Site', value: data.project_site || '' },
+      { label: 'Approved Total', value: fmtAmount(data.total, info.currency), html: true },
     ])}
     <div style="${softCardStyles}; border-left-color: #16a34a;">
       <p style="margin: 0 0 6px 0; color: #166534; font-weight: 700;">Approval complete</p>
       <p style="margin: 0; color: #0f172a;">Status: <strong>${safeText(data.status || 'Approved')}</strong></p>
       <p style="margin: 6px 0 0; color: #0f172a;">Approved total: <strong>${fmtAmount(data.total, info.currency)}</strong></p>
+      ${data.original_total != null ? `<p style="margin: 6px 0 0; color: #0f172a;">Original total: <strong>${fmtAmount(data.original_total, info.currency)}</strong></p>` : ''}
+      ${data.deduction_total != null ? `<p style="margin: 6px 0 0; color: #0f172a;">Deduction total: <strong>${fmtAmount(data.deduction_total, info.currency)}</strong></p>` : ''}
+      ${data.remarks ? `<p style="margin: 6px 0 0; color: #0f172a;">Remarks: <strong>${safeText(data.remarks)}</strong></p>` : ''}
     </div>
+    ${(data.items || []).length > 0 ? `
+      <div style="${softCardStyles}">
+        <p style="margin: 0 0 6px 0; font-weight: 700; color: #0f172a;">Claim summary</p>
+        <table style="${tableStyles}">
+          <thead>
+            <tr>
+              <th style="${claimTableHeaderCell(thStyles, '24%')}">Category / Project</th>
+              <th style="${claimTableHeaderCell(thStyles, '14%')}">Date</th>
+              <th style="${claimTableHeaderCell(thStyles, '30%')}">Description</th>
+              <th style="${claimTableHeaderCell(thStyles, '11%')}">Original</th>
+              <th style="${claimTableHeaderCell(thStyles, '11%')}">Approved</th>
+              <th style="${claimTableHeaderCell(thStyles, '10%')}">Deduction</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    ` : ''}
   `;
   return {
     subject: `Claim Approved - ${data.claim_no}`,
@@ -491,6 +645,7 @@ export type EmailTemplateType =
   | 'welcome_user'
   | 'claim_submitted'
   | 'claim_submitted_user'
+  | 'claim_submitted_admin'
   | 'claim_submitted_manager'
   | 'claim_approved'
   | 'claim_rejected'
@@ -504,6 +659,8 @@ export function getTemplate(type: EmailTemplateType, data: any): { subject: stri
     case 'claim_submitted':
     case 'claim_submitted_user':
       return claimSubmittedUserTemplate(data);
+    case 'claim_submitted_admin':
+      return claimSubmittedAdminTemplate(data);
     case 'claim_submitted_manager':
       return claimSubmittedManagerTemplate(data);
     case 'claim_approved':

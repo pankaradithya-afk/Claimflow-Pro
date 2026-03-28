@@ -37,7 +37,11 @@ CREATE TABLE public.claims (
   manager_approval_status TEXT DEFAULT 'Pending',
   manager_approval_date TIMESTAMP WITH TIME ZONE,
   admin_email TEXT,
+  admin_approval_status TEXT DEFAULT 'Pending',
   admin_approval_date TIMESTAMP WITH TIME ZONE,
+  admin_approved_total NUMERIC NOT NULL DEFAULT 0,
+  admin_deduction_total NUMERIC NOT NULL DEFAULT 0,
+  admin_description TEXT,
   rejection_reason TEXT,
   total_with_bill NUMERIC NOT NULL DEFAULT 0,
   total_without_bill NUMERIC NOT NULL DEFAULT 0,
@@ -56,6 +60,9 @@ CREATE TABLE public.expense_items (
   description TEXT,
   amount_with_bill NUMERIC NOT NULL DEFAULT 0,
   amount_without_bill NUMERIC NOT NULL DEFAULT 0,
+  approved_amount NUMERIC NOT NULL DEFAULT 0,
+  deduction_amount NUMERIC NOT NULL DEFAULT 0,
+  approval_remarks TEXT,
   attachment_ids TEXT[] DEFAULT '{}',
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );

@@ -26,11 +26,27 @@ function hashPassword(password: string): string {
   return SHA256(password).toString();
 }
 
+function matchesStoredPassword(storedPassword: unknown, plainPassword: string) {
+  const storedValue = String(storedPassword || '');
+  if (!storedValue) return false;
+  return storedValue === plainPassword || storedValue === hashPassword(plainPassword);
+}
+
+async function upgradeLegacyPasswordIfNeeded(email: string, storedPassword: unknown, plainPassword: string) {
+  const storedValue = String(storedPassword || '');
+  const hashedPassword = hashPassword(plainPassword);
+
+  if (!storedValue || storedValue === hashedPassword) return;
+
+  await supabase
+    .from('users')
+    .update({ password_hash: hashedPassword })
+    .eq('email', email);
+}
+
 export async function login(email: string, password: string): Promise<{ ok: boolean; message?: string; session?: SessionData }> {
   email = email.trim().toLowerCase();
   if (!email || !password) return { ok: false, message: 'Email and password required.' };
-
-  const hashedInput = hashPassword(password);
 
   const { data: user, error } = await supabase
     .from('users')
@@ -39,8 +55,10 @@ export async function login(email: string, password: string): Promise<{ ok: bool
     .single();
 
   if (error || !user) return { ok: false, message: 'Invalid email or password.' };
-  if ((user as any).password_hash !== hashedInput) return { ok: false, message: 'Invalid email or password.' };
+  if (!matchesStoredPassword((user as any).password_hash, password)) return { ok: false, message: 'Invalid email or password.' };
   if ((user as any).active === false) return { ok: false, message: 'Account is deactivated.' };
+
+  await upgradeLegacyPasswordIfNeeded(email, (user as any).password_hash, password);
 
   const token = generateSecureToken();
   const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();

@@ -9,6 +9,7 @@ const TEMPLATE_TYPES: EmailTemplateType[] = [
   'welcome_user',
   'claim_submitted',
   'claim_submitted_user',
+  'claim_submitted_admin',
   'claim_submitted_manager',
   'claim_approved',
   'claim_rejected',

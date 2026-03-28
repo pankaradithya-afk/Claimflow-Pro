@@ -83,7 +83,10 @@ export type Database = {
       claims: {
         Row: {
           admin_approval_date: string | null
+          admin_approval_status: string | null
           admin_description: string | null
+          admin_approved_total: number | null
+          admin_deduction_total: number | null
           admin_email: string | null
           claim_id: string
           created_at: string
@@ -104,7 +107,10 @@ export type Database = {
         }
         Insert: {
           admin_approval_date?: string | null
+          admin_approval_status?: string | null
           admin_description?: string | null
+          admin_approved_total?: number | null
+          admin_deduction_total?: number | null
           admin_email?: string | null
           claim_id: string
           created_at?: string
@@ -125,7 +131,10 @@ export type Database = {
         }
         Update: {
           admin_approval_date?: string | null
+          admin_approval_status?: string | null
           admin_description?: string | null
+          admin_approved_total?: number | null
+          admin_deduction_total?: number | null
           admin_email?: string | null
           claim_id?: string
           created_at?: string
@@ -204,10 +213,13 @@ export type Database = {
         Row: {
           amount_with_bill: number
           amount_without_bill: number
+          approved_amount: number
+          approval_remarks: string | null
           attachment_ids: string[] | null
           category: string
           claim_id: string
           created_at: string
+          deduction_amount: number
           description: string | null
           expense_date: string | null
           id: string
@@ -216,10 +228,13 @@ export type Database = {
         Insert: {
           amount_with_bill?: number
           amount_without_bill?: number
+          approved_amount?: number
+          approval_remarks?: string | null
           attachment_ids?: string[] | null
           category: string
           claim_id: string
           created_at?: string
+          deduction_amount?: number
           description?: string | null
           expense_date?: string | null
           id?: string
@@ -228,10 +243,13 @@ export type Database = {
         Update: {
           amount_with_bill?: number
           amount_without_bill?: number
+          approved_amount?: number
+          approval_remarks?: string | null
           attachment_ids?: string[] | null
           category?: string
           claim_id?: string
           created_at?: string
+          deduction_amount?: number
           description?: string | null
           expense_date?: string | null
           id?: string

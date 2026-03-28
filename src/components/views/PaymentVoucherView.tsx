@@ -274,16 +274,14 @@ export default function PaymentVoucherView() {
             <div id="voucher-content">
               <div className="border-2 border-border rounded-lg p-6">
                 <div className="text-center mb-4">
-                  {(companySettings?.logo_url || '/ipi-logo.jpg') && (
-                    <img
-                      src={companySettings?.logo_url || '/ipi-logo.jpg'}
-                      alt="Logo"
-                      width="48"
-                      height="48"
-                      className="mx-auto mb-2 block object-contain"
-                      style={{ width: '48px', height: '48px', maxWidth: '48px', maxHeight: '48px', objectFit: 'contain' }}
-                    />
-                  )}
+                  <img
+                    src={companySettings?.logo_url || '/ipi-logo.jpg'}
+                    alt="Logo"
+                    width="48"
+                    height="48"
+                    className="mx-auto mb-2 block object-contain"
+                    style={{ width: '48px', height: '48px', maxWidth: '48px', maxHeight: '48px', objectFit: 'contain' }}
+                  />
                   <h2 className="text-xl font-bold text-primary">{companySettings?.company_name || 'Company'}</h2>
                   {companySettings?.company_subtitle && (
                     <p className="text-sm text-muted-foreground">{companySettings.company_subtitle}</p>

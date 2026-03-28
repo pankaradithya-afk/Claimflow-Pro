@@ -140,9 +140,8 @@ CREATE INDEX idx_app_lists_type ON public.app_lists(type);
 
 -- ========== INSERT DEFAULT DATA ==========
 
--- Default super admin (password: admin123, SHA-256 hashed)
-INSERT INTO public.users (email, password_hash, name, role, advance_amount, active)
-VALUES ('admin@example.com', '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', 'System Admin', 'Super Admin', 0, true);
+-- No default admin is seeded here.
+-- Create the first admin explicitly through the application setup flow.
 
 -- Default company settings
 INSERT INTO public.company_settings (company_name, company_subtitle, support_email, currency_symbol)
